@@ -12,11 +12,10 @@ package test
 import (
 	reflect "reflect"
 
-	gomock "go.uber.org/mock/gomock"
-
 	data "github.com/tidepool-org/platform/data"
 	set "github.com/tidepool-org/platform/data/set"
 	work "github.com/tidepool-org/platform/work"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockMixin is a mock of Mixin interface.
@@ -415,6 +414,320 @@ func (c *MockMixinUpdateDataSetCall) Do(f func(*data.DataSetUpdate) *work.Proces
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockMixinUpdateDataSetCall) DoAndReturn(f func(*data.DataSetUpdate) *work.ProcessResult) *MockMixinUpdateDataSetCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// MockFromWork is a mock of FromWork interface.
+type MockFromWork struct {
+	ctrl     *gomock.Controller
+	recorder *MockFromWorkMockRecorder
+	isgomock struct{}
+}
+
+// MockFromWorkMockRecorder is the mock recorder for MockFromWork.
+type MockFromWorkMockRecorder struct {
+	mock *MockFromWork
+}
+
+// NewMockFromWork creates a new mock instance.
+func NewMockFromWork(ctrl *gomock.Controller) *MockFromWork {
+	mock := &MockFromWork{ctrl: ctrl}
+	mock.recorder = &MockFromWorkMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockFromWork) EXPECT() *MockFromWorkMockRecorder {
+	return m.recorder
+}
+
+// FetchDataSetFromWorkMetadata mocks base method.
+func (m *MockFromWork) FetchDataSetFromWorkMetadata() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FetchDataSetFromWorkMetadata")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// FetchDataSetFromWorkMetadata indicates an expected call of FetchDataSetFromWorkMetadata.
+func (mr *MockFromWorkMockRecorder) FetchDataSetFromWorkMetadata() *MockFromWorkFetchDataSetFromWorkMetadataCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchDataSetFromWorkMetadata", reflect.TypeOf((*MockFromWork)(nil).FetchDataSetFromWorkMetadata))
+	return &MockFromWorkFetchDataSetFromWorkMetadataCall{Call: call}
+}
+
+// MockFromWorkFetchDataSetFromWorkMetadataCall wrap *gomock.Call
+type MockFromWorkFetchDataSetFromWorkMetadataCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockFromWorkFetchDataSetFromWorkMetadataCall) Return(arg0 *work.ProcessResult) *MockFromWorkFetchDataSetFromWorkMetadataCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockFromWorkFetchDataSetFromWorkMetadataCall) Do(f func() *work.ProcessResult) *MockFromWorkFetchDataSetFromWorkMetadataCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockFromWorkFetchDataSetFromWorkMetadataCall) DoAndReturn(f func() *work.ProcessResult) *MockFromWorkFetchDataSetFromWorkMetadataCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// HasWorkMetadata mocks base method.
+func (m *MockFromWork) HasWorkMetadata() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasWorkMetadata")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// HasWorkMetadata indicates an expected call of HasWorkMetadata.
+func (mr *MockFromWorkMockRecorder) HasWorkMetadata() *MockFromWorkHasWorkMetadataCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasWorkMetadata", reflect.TypeOf((*MockFromWork)(nil).HasWorkMetadata))
+	return &MockFromWorkHasWorkMetadataCall{Call: call}
+}
+
+// MockFromWorkHasWorkMetadataCall wrap *gomock.Call
+type MockFromWorkHasWorkMetadataCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockFromWorkHasWorkMetadataCall) Return(arg0 bool) *MockFromWorkHasWorkMetadataCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockFromWorkHasWorkMetadataCall) Do(f func() bool) *MockFromWorkHasWorkMetadataCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockFromWorkHasWorkMetadataCall) DoAndReturn(f func() bool) *MockFromWorkHasWorkMetadataCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpdateWorkMetadataFromDataSet mocks base method.
+func (m *MockFromWork) UpdateWorkMetadataFromDataSet() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateWorkMetadataFromDataSet")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// UpdateWorkMetadataFromDataSet indicates an expected call of UpdateWorkMetadataFromDataSet.
+func (mr *MockFromWorkMockRecorder) UpdateWorkMetadataFromDataSet() *MockFromWorkUpdateWorkMetadataFromDataSetCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateWorkMetadataFromDataSet", reflect.TypeOf((*MockFromWork)(nil).UpdateWorkMetadataFromDataSet))
+	return &MockFromWorkUpdateWorkMetadataFromDataSetCall{Call: call}
+}
+
+// MockFromWorkUpdateWorkMetadataFromDataSetCall wrap *gomock.Call
+type MockFromWorkUpdateWorkMetadataFromDataSetCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockFromWorkUpdateWorkMetadataFromDataSetCall) Return(arg0 *work.ProcessResult) *MockFromWorkUpdateWorkMetadataFromDataSetCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockFromWorkUpdateWorkMetadataFromDataSetCall) Do(f func() *work.ProcessResult) *MockFromWorkUpdateWorkMetadataFromDataSetCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockFromWorkUpdateWorkMetadataFromDataSetCall) DoAndReturn(f func() *work.ProcessResult) *MockFromWorkUpdateWorkMetadataFromDataSetCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// MockWithParsedMetadata is a mock of WithParsedMetadata interface.
+type MockWithParsedMetadata[M any] struct {
+	ctrl     *gomock.Controller
+	recorder *MockWithParsedMetadataMockRecorder[M]
+	isgomock struct{}
+}
+
+// MockWithParsedMetadataMockRecorder is the mock recorder for MockWithParsedMetadata.
+type MockWithParsedMetadataMockRecorder[M any] struct {
+	mock *MockWithParsedMetadata[M]
+}
+
+// NewMockWithParsedMetadata creates a new mock instance.
+func NewMockWithParsedMetadata[M any](ctrl *gomock.Controller) *MockWithParsedMetadata[M] {
+	mock := &MockWithParsedMetadata[M]{ctrl: ctrl}
+	mock.recorder = &MockWithParsedMetadataMockRecorder[M]{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockWithParsedMetadata[M]) EXPECT() *MockWithParsedMetadataMockRecorder[M] {
+	return m.recorder
+}
+
+// DataSetMetadata mocks base method.
+func (m *MockWithParsedMetadata[M]) DataSetMetadata() *M {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DataSetMetadata")
+	ret0, _ := ret[0].(*M)
+	return ret0
+}
+
+// DataSetMetadata indicates an expected call of DataSetMetadata.
+func (mr *MockWithParsedMetadataMockRecorder[M]) DataSetMetadata() *MockWithParsedMetadataDataSetMetadataCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DataSetMetadata", reflect.TypeOf((*MockWithParsedMetadata[M])(nil).DataSetMetadata))
+	return &MockWithParsedMetadataDataSetMetadataCall[M]{Call: call}
+}
+
+// MockWithParsedMetadataDataSetMetadataCall wrap *gomock.Call
+type MockWithParsedMetadataDataSetMetadataCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockWithParsedMetadataDataSetMetadataCall[M]) Return(arg0 *M) *MockWithParsedMetadataDataSetMetadataCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockWithParsedMetadataDataSetMetadataCall[M]) Do(f func() *M) *MockWithParsedMetadataDataSetMetadataCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockWithParsedMetadataDataSetMetadataCall[M]) DoAndReturn(f func() *M) *MockWithParsedMetadataDataSetMetadataCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// HasDataSetMetadata mocks base method.
+func (m *MockWithParsedMetadata[M]) HasDataSetMetadata() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasDataSetMetadata")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// HasDataSetMetadata indicates an expected call of HasDataSetMetadata.
+func (mr *MockWithParsedMetadataMockRecorder[M]) HasDataSetMetadata() *MockWithParsedMetadataHasDataSetMetadataCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasDataSetMetadata", reflect.TypeOf((*MockWithParsedMetadata[M])(nil).HasDataSetMetadata))
+	return &MockWithParsedMetadataHasDataSetMetadataCall[M]{Call: call}
+}
+
+// MockWithParsedMetadataHasDataSetMetadataCall wrap *gomock.Call
+type MockWithParsedMetadataHasDataSetMetadataCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockWithParsedMetadataHasDataSetMetadataCall[M]) Return(arg0 bool) *MockWithParsedMetadataHasDataSetMetadataCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockWithParsedMetadataHasDataSetMetadataCall[M]) Do(f func() bool) *MockWithParsedMetadataHasDataSetMetadataCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockWithParsedMetadataHasDataSetMetadataCall[M]) DoAndReturn(f func() bool) *MockWithParsedMetadataHasDataSetMetadataCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SetDataSetMetadata mocks base method.
+func (m *MockWithParsedMetadata[M]) SetDataSetMetadata(dataSetMetadata *M) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetDataSetMetadata", dataSetMetadata)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// SetDataSetMetadata indicates an expected call of SetDataSetMetadata.
+func (mr *MockWithParsedMetadataMockRecorder[M]) SetDataSetMetadata(dataSetMetadata any) *MockWithParsedMetadataSetDataSetMetadataCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDataSetMetadata", reflect.TypeOf((*MockWithParsedMetadata[M])(nil).SetDataSetMetadata), dataSetMetadata)
+	return &MockWithParsedMetadataSetDataSetMetadataCall[M]{Call: call}
+}
+
+// MockWithParsedMetadataSetDataSetMetadataCall wrap *gomock.Call
+type MockWithParsedMetadataSetDataSetMetadataCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockWithParsedMetadataSetDataSetMetadataCall[M]) Return(arg0 *work.ProcessResult) *MockWithParsedMetadataSetDataSetMetadataCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockWithParsedMetadataSetDataSetMetadataCall[M]) Do(f func(*M) *work.ProcessResult) *MockWithParsedMetadataSetDataSetMetadataCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockWithParsedMetadataSetDataSetMetadataCall[M]) DoAndReturn(f func(*M) *work.ProcessResult) *MockWithParsedMetadataSetDataSetMetadataCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpdateDataSetMetadata mocks base method.
+func (m *MockWithParsedMetadata[M]) UpdateDataSetMetadata() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateDataSetMetadata")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// UpdateDataSetMetadata indicates an expected call of UpdateDataSetMetadata.
+func (mr *MockWithParsedMetadataMockRecorder[M]) UpdateDataSetMetadata() *MockWithParsedMetadataUpdateDataSetMetadataCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDataSetMetadata", reflect.TypeOf((*MockWithParsedMetadata[M])(nil).UpdateDataSetMetadata))
+	return &MockWithParsedMetadataUpdateDataSetMetadataCall[M]{Call: call}
+}
+
+// MockWithParsedMetadataUpdateDataSetMetadataCall wrap *gomock.Call
+type MockWithParsedMetadataUpdateDataSetMetadataCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockWithParsedMetadataUpdateDataSetMetadataCall[M]) Return(arg0 *work.ProcessResult) *MockWithParsedMetadataUpdateDataSetMetadataCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockWithParsedMetadataUpdateDataSetMetadataCall[M]) Do(f func() *work.ProcessResult) *MockWithParsedMetadataUpdateDataSetMetadataCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockWithParsedMetadataUpdateDataSetMetadataCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockWithParsedMetadataUpdateDataSetMetadataCall[M] {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -929,6 +1242,1224 @@ func (c *MockMixinFromWorkUpdateWorkMetadataFromDataSetCall) Do(f func() *work.P
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockMixinFromWorkUpdateWorkMetadataFromDataSetCall) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkUpdateWorkMetadataFromDataSetCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// MockMixinWithParsedMetadata is a mock of MixinWithParsedMetadata interface.
+type MockMixinWithParsedMetadata[M any] struct {
+	ctrl     *gomock.Controller
+	recorder *MockMixinWithParsedMetadataMockRecorder[M]
+	isgomock struct{}
+}
+
+// MockMixinWithParsedMetadataMockRecorder is the mock recorder for MockMixinWithParsedMetadata.
+type MockMixinWithParsedMetadataMockRecorder[M any] struct {
+	mock *MockMixinWithParsedMetadata[M]
+}
+
+// NewMockMixinWithParsedMetadata creates a new mock instance.
+func NewMockMixinWithParsedMetadata[M any](ctrl *gomock.Controller) *MockMixinWithParsedMetadata[M] {
+	mock := &MockMixinWithParsedMetadata[M]{ctrl: ctrl}
+	mock.recorder = &MockMixinWithParsedMetadataMockRecorder[M]{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockMixinWithParsedMetadata[M]) EXPECT() *MockMixinWithParsedMetadataMockRecorder[M] {
+	return m.recorder
+}
+
+// AddDataSetToContext mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) AddDataSetToContext() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "AddDataSetToContext")
+}
+
+// AddDataSetToContext indicates an expected call of AddDataSetToContext.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) AddDataSetToContext() *MockMixinWithParsedMetadataAddDataSetToContextCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddDataSetToContext", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).AddDataSetToContext))
+	return &MockMixinWithParsedMetadataAddDataSetToContextCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataAddDataSetToContextCall wrap *gomock.Call
+type MockMixinWithParsedMetadataAddDataSetToContextCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataAddDataSetToContextCall[M]) Return() *MockMixinWithParsedMetadataAddDataSetToContextCall[M] {
+	c.Call = c.Call.Return()
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataAddDataSetToContextCall[M]) Do(f func()) *MockMixinWithParsedMetadataAddDataSetToContextCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataAddDataSetToContextCall[M]) DoAndReturn(f func()) *MockMixinWithParsedMetadataAddDataSetToContextCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// ClearDataSet mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) ClearDataSet() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClearDataSet")
+}
+
+// ClearDataSet indicates an expected call of ClearDataSet.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) ClearDataSet() *MockMixinWithParsedMetadataClearDataSetCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearDataSet", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).ClearDataSet))
+	return &MockMixinWithParsedMetadataClearDataSetCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataClearDataSetCall wrap *gomock.Call
+type MockMixinWithParsedMetadataClearDataSetCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataClearDataSetCall[M]) Return() *MockMixinWithParsedMetadataClearDataSetCall[M] {
+	c.Call = c.Call.Return()
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataClearDataSetCall[M]) Do(f func()) *MockMixinWithParsedMetadataClearDataSetCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataClearDataSetCall[M]) DoAndReturn(f func()) *MockMixinWithParsedMetadataClearDataSetCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// CreateDataSet mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) CreateDataSet(userID string, dataSetCreate *data.DataSetCreate) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateDataSet", userID, dataSetCreate)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// CreateDataSet indicates an expected call of CreateDataSet.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) CreateDataSet(userID, dataSetCreate any) *MockMixinWithParsedMetadataCreateDataSetCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDataSet", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).CreateDataSet), userID, dataSetCreate)
+	return &MockMixinWithParsedMetadataCreateDataSetCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataCreateDataSetCall wrap *gomock.Call
+type MockMixinWithParsedMetadataCreateDataSetCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataCreateDataSetCall[M]) Return(arg0 *work.ProcessResult) *MockMixinWithParsedMetadataCreateDataSetCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataCreateDataSetCall[M]) Do(f func(string, *data.DataSetCreate) *work.ProcessResult) *MockMixinWithParsedMetadataCreateDataSetCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataCreateDataSetCall[M]) DoAndReturn(f func(string, *data.DataSetCreate) *work.ProcessResult) *MockMixinWithParsedMetadataCreateDataSetCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// DataSet mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) DataSet() *data.DataSet {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DataSet")
+	ret0, _ := ret[0].(*data.DataSet)
+	return ret0
+}
+
+// DataSet indicates an expected call of DataSet.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) DataSet() *MockMixinWithParsedMetadataDataSetCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DataSet", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).DataSet))
+	return &MockMixinWithParsedMetadataDataSetCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataDataSetCall wrap *gomock.Call
+type MockMixinWithParsedMetadataDataSetCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataDataSetCall[M]) Return(arg0 *data.DataSet) *MockMixinWithParsedMetadataDataSetCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataDataSetCall[M]) Do(f func() *data.DataSet) *MockMixinWithParsedMetadataDataSetCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataDataSetCall[M]) DoAndReturn(f func() *data.DataSet) *MockMixinWithParsedMetadataDataSetCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// DataSetClient mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) DataSetClient() set.Client {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DataSetClient")
+	ret0, _ := ret[0].(set.Client)
+	return ret0
+}
+
+// DataSetClient indicates an expected call of DataSetClient.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) DataSetClient() *MockMixinWithParsedMetadataDataSetClientCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DataSetClient", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).DataSetClient))
+	return &MockMixinWithParsedMetadataDataSetClientCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataDataSetClientCall wrap *gomock.Call
+type MockMixinWithParsedMetadataDataSetClientCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataDataSetClientCall[M]) Return(arg0 set.Client) *MockMixinWithParsedMetadataDataSetClientCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataDataSetClientCall[M]) Do(f func() set.Client) *MockMixinWithParsedMetadataDataSetClientCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataDataSetClientCall[M]) DoAndReturn(f func() set.Client) *MockMixinWithParsedMetadataDataSetClientCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// DataSetMetadata mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) DataSetMetadata() *M {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DataSetMetadata")
+	ret0, _ := ret[0].(*M)
+	return ret0
+}
+
+// DataSetMetadata indicates an expected call of DataSetMetadata.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) DataSetMetadata() *MockMixinWithParsedMetadataDataSetMetadataCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DataSetMetadata", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).DataSetMetadata))
+	return &MockMixinWithParsedMetadataDataSetMetadataCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataDataSetMetadataCall wrap *gomock.Call
+type MockMixinWithParsedMetadataDataSetMetadataCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataDataSetMetadataCall[M]) Return(arg0 *M) *MockMixinWithParsedMetadataDataSetMetadataCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataDataSetMetadataCall[M]) Do(f func() *M) *MockMixinWithParsedMetadataDataSetMetadataCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataDataSetMetadataCall[M]) DoAndReturn(f func() *M) *MockMixinWithParsedMetadataDataSetMetadataCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataSet mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) EnsureDataSet() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataSet")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataSet indicates an expected call of EnsureDataSet.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) EnsureDataSet() *MockMixinWithParsedMetadataEnsureDataSetCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataSet", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).EnsureDataSet))
+	return &MockMixinWithParsedMetadataEnsureDataSetCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataEnsureDataSetCall wrap *gomock.Call
+type MockMixinWithParsedMetadataEnsureDataSetCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataEnsureDataSetCall[M]) Return(arg0 *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataSetCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataEnsureDataSetCall[M]) Do(f func() *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataSetCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataEnsureDataSetCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataSetCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// FetchDataSet mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) FetchDataSet(dataSetID string) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FetchDataSet", dataSetID)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// FetchDataSet indicates an expected call of FetchDataSet.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) FetchDataSet(dataSetID any) *MockMixinWithParsedMetadataFetchDataSetCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchDataSet", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).FetchDataSet), dataSetID)
+	return &MockMixinWithParsedMetadataFetchDataSetCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataFetchDataSetCall wrap *gomock.Call
+type MockMixinWithParsedMetadataFetchDataSetCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataFetchDataSetCall[M]) Return(arg0 *work.ProcessResult) *MockMixinWithParsedMetadataFetchDataSetCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataFetchDataSetCall[M]) Do(f func(string) *work.ProcessResult) *MockMixinWithParsedMetadataFetchDataSetCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataFetchDataSetCall[M]) DoAndReturn(f func(string) *work.ProcessResult) *MockMixinWithParsedMetadataFetchDataSetCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// HasDataSet mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) HasDataSet() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasDataSet")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// HasDataSet indicates an expected call of HasDataSet.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) HasDataSet() *MockMixinWithParsedMetadataHasDataSetCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasDataSet", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).HasDataSet))
+	return &MockMixinWithParsedMetadataHasDataSetCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataHasDataSetCall wrap *gomock.Call
+type MockMixinWithParsedMetadataHasDataSetCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataHasDataSetCall[M]) Return(arg0 bool) *MockMixinWithParsedMetadataHasDataSetCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataHasDataSetCall[M]) Do(f func() bool) *MockMixinWithParsedMetadataHasDataSetCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataHasDataSetCall[M]) DoAndReturn(f func() bool) *MockMixinWithParsedMetadataHasDataSetCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// HasDataSetMetadata mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) HasDataSetMetadata() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasDataSetMetadata")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// HasDataSetMetadata indicates an expected call of HasDataSetMetadata.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) HasDataSetMetadata() *MockMixinWithParsedMetadataHasDataSetMetadataCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasDataSetMetadata", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).HasDataSetMetadata))
+	return &MockMixinWithParsedMetadataHasDataSetMetadataCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataHasDataSetMetadataCall wrap *gomock.Call
+type MockMixinWithParsedMetadataHasDataSetMetadataCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataHasDataSetMetadataCall[M]) Return(arg0 bool) *MockMixinWithParsedMetadataHasDataSetMetadataCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataHasDataSetMetadataCall[M]) Do(f func() bool) *MockMixinWithParsedMetadataHasDataSetMetadataCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataHasDataSetMetadataCall[M]) DoAndReturn(f func() bool) *MockMixinWithParsedMetadataHasDataSetMetadataCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SetDataSet mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) SetDataSet(dataSet *data.DataSet) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetDataSet", dataSet)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// SetDataSet indicates an expected call of SetDataSet.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) SetDataSet(dataSet any) *MockMixinWithParsedMetadataSetDataSetCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDataSet", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).SetDataSet), dataSet)
+	return &MockMixinWithParsedMetadataSetDataSetCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataSetDataSetCall wrap *gomock.Call
+type MockMixinWithParsedMetadataSetDataSetCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataSetDataSetCall[M]) Return(arg0 *work.ProcessResult) *MockMixinWithParsedMetadataSetDataSetCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataSetDataSetCall[M]) Do(f func(*data.DataSet) *work.ProcessResult) *MockMixinWithParsedMetadataSetDataSetCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataSetDataSetCall[M]) DoAndReturn(f func(*data.DataSet) *work.ProcessResult) *MockMixinWithParsedMetadataSetDataSetCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SetDataSetMetadata mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) SetDataSetMetadata(dataSetMetadata *M) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetDataSetMetadata", dataSetMetadata)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// SetDataSetMetadata indicates an expected call of SetDataSetMetadata.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) SetDataSetMetadata(dataSetMetadata any) *MockMixinWithParsedMetadataSetDataSetMetadataCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDataSetMetadata", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).SetDataSetMetadata), dataSetMetadata)
+	return &MockMixinWithParsedMetadataSetDataSetMetadataCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataSetDataSetMetadataCall wrap *gomock.Call
+type MockMixinWithParsedMetadataSetDataSetMetadataCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataSetDataSetMetadataCall[M]) Return(arg0 *work.ProcessResult) *MockMixinWithParsedMetadataSetDataSetMetadataCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataSetDataSetMetadataCall[M]) Do(f func(*M) *work.ProcessResult) *MockMixinWithParsedMetadataSetDataSetMetadataCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataSetDataSetMetadataCall[M]) DoAndReturn(f func(*M) *work.ProcessResult) *MockMixinWithParsedMetadataSetDataSetMetadataCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpdateDataSet mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) UpdateDataSet(dataSetUpdate *data.DataSetUpdate) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateDataSet", dataSetUpdate)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// UpdateDataSet indicates an expected call of UpdateDataSet.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) UpdateDataSet(dataSetUpdate any) *MockMixinWithParsedMetadataUpdateDataSetCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDataSet", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).UpdateDataSet), dataSetUpdate)
+	return &MockMixinWithParsedMetadataUpdateDataSetCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataUpdateDataSetCall wrap *gomock.Call
+type MockMixinWithParsedMetadataUpdateDataSetCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataUpdateDataSetCall[M]) Return(arg0 *work.ProcessResult) *MockMixinWithParsedMetadataUpdateDataSetCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataUpdateDataSetCall[M]) Do(f func(*data.DataSetUpdate) *work.ProcessResult) *MockMixinWithParsedMetadataUpdateDataSetCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataUpdateDataSetCall[M]) DoAndReturn(f func(*data.DataSetUpdate) *work.ProcessResult) *MockMixinWithParsedMetadataUpdateDataSetCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpdateDataSetMetadata mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) UpdateDataSetMetadata() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateDataSetMetadata")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// UpdateDataSetMetadata indicates an expected call of UpdateDataSetMetadata.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) UpdateDataSetMetadata() *MockMixinWithParsedMetadataUpdateDataSetMetadataCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDataSetMetadata", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).UpdateDataSetMetadata))
+	return &MockMixinWithParsedMetadataUpdateDataSetMetadataCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataUpdateDataSetMetadataCall wrap *gomock.Call
+type MockMixinWithParsedMetadataUpdateDataSetMetadataCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataUpdateDataSetMetadataCall[M]) Return(arg0 *work.ProcessResult) *MockMixinWithParsedMetadataUpdateDataSetMetadataCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataUpdateDataSetMetadataCall[M]) Do(f func() *work.ProcessResult) *MockMixinWithParsedMetadataUpdateDataSetMetadataCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataUpdateDataSetMetadataCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinWithParsedMetadataUpdateDataSetMetadataCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// MockMixinFromWorkWithParsedMetadata is a mock of MixinFromWorkWithParsedMetadata interface.
+type MockMixinFromWorkWithParsedMetadata[M any] struct {
+	ctrl     *gomock.Controller
+	recorder *MockMixinFromWorkWithParsedMetadataMockRecorder[M]
+	isgomock struct{}
+}
+
+// MockMixinFromWorkWithParsedMetadataMockRecorder is the mock recorder for MockMixinFromWorkWithParsedMetadata.
+type MockMixinFromWorkWithParsedMetadataMockRecorder[M any] struct {
+	mock *MockMixinFromWorkWithParsedMetadata[M]
+}
+
+// NewMockMixinFromWorkWithParsedMetadata creates a new mock instance.
+func NewMockMixinFromWorkWithParsedMetadata[M any](ctrl *gomock.Controller) *MockMixinFromWorkWithParsedMetadata[M] {
+	mock := &MockMixinFromWorkWithParsedMetadata[M]{ctrl: ctrl}
+	mock.recorder = &MockMixinFromWorkWithParsedMetadataMockRecorder[M]{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) EXPECT() *MockMixinFromWorkWithParsedMetadataMockRecorder[M] {
+	return m.recorder
+}
+
+// AddDataSetToContext mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) AddDataSetToContext() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "AddDataSetToContext")
+}
+
+// AddDataSetToContext indicates an expected call of AddDataSetToContext.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) AddDataSetToContext() *MockMixinFromWorkWithParsedMetadataAddDataSetToContextCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddDataSetToContext", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).AddDataSetToContext))
+	return &MockMixinFromWorkWithParsedMetadataAddDataSetToContextCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataAddDataSetToContextCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataAddDataSetToContextCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataAddDataSetToContextCall[M]) Return() *MockMixinFromWorkWithParsedMetadataAddDataSetToContextCall[M] {
+	c.Call = c.Call.Return()
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataAddDataSetToContextCall[M]) Do(f func()) *MockMixinFromWorkWithParsedMetadataAddDataSetToContextCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataAddDataSetToContextCall[M]) DoAndReturn(f func()) *MockMixinFromWorkWithParsedMetadataAddDataSetToContextCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// ClearDataSet mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) ClearDataSet() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClearDataSet")
+}
+
+// ClearDataSet indicates an expected call of ClearDataSet.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) ClearDataSet() *MockMixinFromWorkWithParsedMetadataClearDataSetCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearDataSet", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).ClearDataSet))
+	return &MockMixinFromWorkWithParsedMetadataClearDataSetCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataClearDataSetCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataClearDataSetCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataClearDataSetCall[M]) Return() *MockMixinFromWorkWithParsedMetadataClearDataSetCall[M] {
+	c.Call = c.Call.Return()
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataClearDataSetCall[M]) Do(f func()) *MockMixinFromWorkWithParsedMetadataClearDataSetCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataClearDataSetCall[M]) DoAndReturn(f func()) *MockMixinFromWorkWithParsedMetadataClearDataSetCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// CreateDataSet mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) CreateDataSet(userID string, dataSetCreate *data.DataSetCreate) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateDataSet", userID, dataSetCreate)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// CreateDataSet indicates an expected call of CreateDataSet.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) CreateDataSet(userID, dataSetCreate any) *MockMixinFromWorkWithParsedMetadataCreateDataSetCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDataSet", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).CreateDataSet), userID, dataSetCreate)
+	return &MockMixinFromWorkWithParsedMetadataCreateDataSetCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataCreateDataSetCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataCreateDataSetCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataCreateDataSetCall[M]) Return(arg0 *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataCreateDataSetCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataCreateDataSetCall[M]) Do(f func(string, *data.DataSetCreate) *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataCreateDataSetCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataCreateDataSetCall[M]) DoAndReturn(f func(string, *data.DataSetCreate) *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataCreateDataSetCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// DataSet mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) DataSet() *data.DataSet {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DataSet")
+	ret0, _ := ret[0].(*data.DataSet)
+	return ret0
+}
+
+// DataSet indicates an expected call of DataSet.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) DataSet() *MockMixinFromWorkWithParsedMetadataDataSetCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DataSet", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).DataSet))
+	return &MockMixinFromWorkWithParsedMetadataDataSetCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataDataSetCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataDataSetCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataDataSetCall[M]) Return(arg0 *data.DataSet) *MockMixinFromWorkWithParsedMetadataDataSetCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataDataSetCall[M]) Do(f func() *data.DataSet) *MockMixinFromWorkWithParsedMetadataDataSetCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataDataSetCall[M]) DoAndReturn(f func() *data.DataSet) *MockMixinFromWorkWithParsedMetadataDataSetCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// DataSetClient mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) DataSetClient() set.Client {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DataSetClient")
+	ret0, _ := ret[0].(set.Client)
+	return ret0
+}
+
+// DataSetClient indicates an expected call of DataSetClient.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) DataSetClient() *MockMixinFromWorkWithParsedMetadataDataSetClientCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DataSetClient", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).DataSetClient))
+	return &MockMixinFromWorkWithParsedMetadataDataSetClientCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataDataSetClientCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataDataSetClientCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataDataSetClientCall[M]) Return(arg0 set.Client) *MockMixinFromWorkWithParsedMetadataDataSetClientCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataDataSetClientCall[M]) Do(f func() set.Client) *MockMixinFromWorkWithParsedMetadataDataSetClientCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataDataSetClientCall[M]) DoAndReturn(f func() set.Client) *MockMixinFromWorkWithParsedMetadataDataSetClientCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// DataSetMetadata mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) DataSetMetadata() *M {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DataSetMetadata")
+	ret0, _ := ret[0].(*M)
+	return ret0
+}
+
+// DataSetMetadata indicates an expected call of DataSetMetadata.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) DataSetMetadata() *MockMixinFromWorkWithParsedMetadataDataSetMetadataCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DataSetMetadata", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).DataSetMetadata))
+	return &MockMixinFromWorkWithParsedMetadataDataSetMetadataCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataDataSetMetadataCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataDataSetMetadataCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataDataSetMetadataCall[M]) Return(arg0 *M) *MockMixinFromWorkWithParsedMetadataDataSetMetadataCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataDataSetMetadataCall[M]) Do(f func() *M) *MockMixinFromWorkWithParsedMetadataDataSetMetadataCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataDataSetMetadataCall[M]) DoAndReturn(f func() *M) *MockMixinFromWorkWithParsedMetadataDataSetMetadataCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataSet mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) EnsureDataSet() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataSet")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataSet indicates an expected call of EnsureDataSet.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) EnsureDataSet() *MockMixinFromWorkWithParsedMetadataEnsureDataSetCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataSet", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).EnsureDataSet))
+	return &MockMixinFromWorkWithParsedMetadataEnsureDataSetCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataEnsureDataSetCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataEnsureDataSetCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataSetCall[M]) Return(arg0 *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataSetCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataSetCall[M]) Do(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataSetCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataSetCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataSetCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// FetchDataSet mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) FetchDataSet(dataSetID string) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FetchDataSet", dataSetID)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// FetchDataSet indicates an expected call of FetchDataSet.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) FetchDataSet(dataSetID any) *MockMixinFromWorkWithParsedMetadataFetchDataSetCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchDataSet", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).FetchDataSet), dataSetID)
+	return &MockMixinFromWorkWithParsedMetadataFetchDataSetCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataFetchDataSetCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataFetchDataSetCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataFetchDataSetCall[M]) Return(arg0 *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataFetchDataSetCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataFetchDataSetCall[M]) Do(f func(string) *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataFetchDataSetCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataFetchDataSetCall[M]) DoAndReturn(f func(string) *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataFetchDataSetCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// FetchDataSetFromWorkMetadata mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) FetchDataSetFromWorkMetadata() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FetchDataSetFromWorkMetadata")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// FetchDataSetFromWorkMetadata indicates an expected call of FetchDataSetFromWorkMetadata.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) FetchDataSetFromWorkMetadata() *MockMixinFromWorkWithParsedMetadataFetchDataSetFromWorkMetadataCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchDataSetFromWorkMetadata", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).FetchDataSetFromWorkMetadata))
+	return &MockMixinFromWorkWithParsedMetadataFetchDataSetFromWorkMetadataCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataFetchDataSetFromWorkMetadataCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataFetchDataSetFromWorkMetadataCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataFetchDataSetFromWorkMetadataCall[M]) Return(arg0 *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataFetchDataSetFromWorkMetadataCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataFetchDataSetFromWorkMetadataCall[M]) Do(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataFetchDataSetFromWorkMetadataCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataFetchDataSetFromWorkMetadataCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataFetchDataSetFromWorkMetadataCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// HasDataSet mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) HasDataSet() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasDataSet")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// HasDataSet indicates an expected call of HasDataSet.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) HasDataSet() *MockMixinFromWorkWithParsedMetadataHasDataSetCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasDataSet", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).HasDataSet))
+	return &MockMixinFromWorkWithParsedMetadataHasDataSetCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataHasDataSetCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataHasDataSetCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataHasDataSetCall[M]) Return(arg0 bool) *MockMixinFromWorkWithParsedMetadataHasDataSetCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataHasDataSetCall[M]) Do(f func() bool) *MockMixinFromWorkWithParsedMetadataHasDataSetCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataHasDataSetCall[M]) DoAndReturn(f func() bool) *MockMixinFromWorkWithParsedMetadataHasDataSetCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// HasDataSetMetadata mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) HasDataSetMetadata() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasDataSetMetadata")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// HasDataSetMetadata indicates an expected call of HasDataSetMetadata.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) HasDataSetMetadata() *MockMixinFromWorkWithParsedMetadataHasDataSetMetadataCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasDataSetMetadata", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).HasDataSetMetadata))
+	return &MockMixinFromWorkWithParsedMetadataHasDataSetMetadataCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataHasDataSetMetadataCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataHasDataSetMetadataCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataHasDataSetMetadataCall[M]) Return(arg0 bool) *MockMixinFromWorkWithParsedMetadataHasDataSetMetadataCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataHasDataSetMetadataCall[M]) Do(f func() bool) *MockMixinFromWorkWithParsedMetadataHasDataSetMetadataCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataHasDataSetMetadataCall[M]) DoAndReturn(f func() bool) *MockMixinFromWorkWithParsedMetadataHasDataSetMetadataCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// HasWorkMetadata mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) HasWorkMetadata() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasWorkMetadata")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// HasWorkMetadata indicates an expected call of HasWorkMetadata.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) HasWorkMetadata() *MockMixinFromWorkWithParsedMetadataHasWorkMetadataCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasWorkMetadata", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).HasWorkMetadata))
+	return &MockMixinFromWorkWithParsedMetadataHasWorkMetadataCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataHasWorkMetadataCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataHasWorkMetadataCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataHasWorkMetadataCall[M]) Return(arg0 bool) *MockMixinFromWorkWithParsedMetadataHasWorkMetadataCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataHasWorkMetadataCall[M]) Do(f func() bool) *MockMixinFromWorkWithParsedMetadataHasWorkMetadataCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataHasWorkMetadataCall[M]) DoAndReturn(f func() bool) *MockMixinFromWorkWithParsedMetadataHasWorkMetadataCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SetDataSet mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) SetDataSet(dataSet *data.DataSet) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetDataSet", dataSet)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// SetDataSet indicates an expected call of SetDataSet.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) SetDataSet(dataSet any) *MockMixinFromWorkWithParsedMetadataSetDataSetCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDataSet", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).SetDataSet), dataSet)
+	return &MockMixinFromWorkWithParsedMetadataSetDataSetCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataSetDataSetCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataSetDataSetCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataSetDataSetCall[M]) Return(arg0 *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataSetDataSetCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataSetDataSetCall[M]) Do(f func(*data.DataSet) *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataSetDataSetCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataSetDataSetCall[M]) DoAndReturn(f func(*data.DataSet) *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataSetDataSetCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SetDataSetMetadata mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) SetDataSetMetadata(dataSetMetadata *M) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetDataSetMetadata", dataSetMetadata)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// SetDataSetMetadata indicates an expected call of SetDataSetMetadata.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) SetDataSetMetadata(dataSetMetadata any) *MockMixinFromWorkWithParsedMetadataSetDataSetMetadataCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDataSetMetadata", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).SetDataSetMetadata), dataSetMetadata)
+	return &MockMixinFromWorkWithParsedMetadataSetDataSetMetadataCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataSetDataSetMetadataCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataSetDataSetMetadataCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataSetDataSetMetadataCall[M]) Return(arg0 *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataSetDataSetMetadataCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataSetDataSetMetadataCall[M]) Do(f func(*M) *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataSetDataSetMetadataCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataSetDataSetMetadataCall[M]) DoAndReturn(f func(*M) *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataSetDataSetMetadataCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpdateDataSet mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) UpdateDataSet(dataSetUpdate *data.DataSetUpdate) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateDataSet", dataSetUpdate)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// UpdateDataSet indicates an expected call of UpdateDataSet.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) UpdateDataSet(dataSetUpdate any) *MockMixinFromWorkWithParsedMetadataUpdateDataSetCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDataSet", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).UpdateDataSet), dataSetUpdate)
+	return &MockMixinFromWorkWithParsedMetadataUpdateDataSetCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataUpdateDataSetCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataUpdateDataSetCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataUpdateDataSetCall[M]) Return(arg0 *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataUpdateDataSetCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataUpdateDataSetCall[M]) Do(f func(*data.DataSetUpdate) *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataUpdateDataSetCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataUpdateDataSetCall[M]) DoAndReturn(f func(*data.DataSetUpdate) *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataUpdateDataSetCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpdateDataSetMetadata mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) UpdateDataSetMetadata() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateDataSetMetadata")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// UpdateDataSetMetadata indicates an expected call of UpdateDataSetMetadata.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) UpdateDataSetMetadata() *MockMixinFromWorkWithParsedMetadataUpdateDataSetMetadataCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDataSetMetadata", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).UpdateDataSetMetadata))
+	return &MockMixinFromWorkWithParsedMetadataUpdateDataSetMetadataCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataUpdateDataSetMetadataCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataUpdateDataSetMetadataCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataUpdateDataSetMetadataCall[M]) Return(arg0 *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataUpdateDataSetMetadataCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataUpdateDataSetMetadataCall[M]) Do(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataUpdateDataSetMetadataCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataUpdateDataSetMetadataCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataUpdateDataSetMetadataCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpdateWorkMetadataFromDataSet mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) UpdateWorkMetadataFromDataSet() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateWorkMetadataFromDataSet")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// UpdateWorkMetadataFromDataSet indicates an expected call of UpdateWorkMetadataFromDataSet.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) UpdateWorkMetadataFromDataSet() *MockMixinFromWorkWithParsedMetadataUpdateWorkMetadataFromDataSetCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateWorkMetadataFromDataSet", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).UpdateWorkMetadataFromDataSet))
+	return &MockMixinFromWorkWithParsedMetadataUpdateWorkMetadataFromDataSetCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataUpdateWorkMetadataFromDataSetCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataUpdateWorkMetadataFromDataSetCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataUpdateWorkMetadataFromDataSetCall[M]) Return(arg0 *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataUpdateWorkMetadataFromDataSetCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataUpdateWorkMetadataFromDataSetCall[M]) Do(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataUpdateWorkMetadataFromDataSetCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataUpdateWorkMetadataFromDataSetCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataUpdateWorkMetadataFromDataSetCall[M] {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

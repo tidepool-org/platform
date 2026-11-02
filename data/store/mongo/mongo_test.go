@@ -817,10 +817,97 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								Expect(err).ToNot(HaveOccurred())
 								dataSet.Time = pointer.FromTime(newTime)
 								dataSet.ModifiedTime = pointer.FromTime(time.Now().UTC().Truncate(time.Millisecond))
+								dataSet.VersionInternal++
 								update.Time = pointer.FromTime(newTime)
 								_, err = repository.UpdateDataSet(ctx, id, update)
 								Expect(err).ToNot(HaveOccurred())
 								ValidateDataSetWithModifiedThreshold(dataSetCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, time.Second, dataSet)
+							})
+
+							It("replaces the metadata and increments the version", func() {
+								update.Metadata = &map[string]any{"owner": "work", "count": 2.0}
+								result, err := repository.UpdateDataSet(ctx, id, update)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(result).ToNot(BeNil())
+								Expect(result.Metadata).To(Equal(*update.Metadata))
+								Expect(result.VersionInternal).To(Equal(dataSet.VersionInternal + 1))
+							})
+
+							Context("with a condition", func() {
+								It("updates when the version matches a data set never updated", func() {
+									update.Condition = data.NewDataSetConditionWithVersionInternal(pointer.FromInt(dataSet.VersionInternal))
+									update.Metadata = &map[string]any{"owner": "work"}
+									result, err := repository.UpdateDataSet(ctx, id, update)
+									Expect(err).ToNot(HaveOccurred())
+									Expect(result).ToNot(BeNil())
+									Expect(result.VersionInternal).To(Equal(dataSet.VersionInternal + 1))
+									Expect(result.Metadata).To(Equal(*update.Metadata))
+								})
+
+								It("returns nil and changes nothing when the version does not match", func() {
+									update.Condition = data.NewDataSetConditionWithVersionInternal(pointer.FromInt(dataSet.VersionInternal + 1))
+									update.Metadata = &map[string]any{"owner": "stale"}
+									result, err := repository.UpdateDataSet(ctx, id, update)
+									Expect(err).ToNot(HaveOccurred())
+									Expect(result).To(BeNil())
+									ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+								})
+
+								It("updates with the version read after an update and refuses the one before", func() {
+									update.Condition = data.NewDataSetConditionWithVersionInternal(pointer.FromInt(dataSet.VersionInternal))
+									update.State = pointer.FromString("closed")
+									updated, err := repository.UpdateDataSet(ctx, id, update)
+									Expect(err).ToNot(HaveOccurred())
+									Expect(updated).ToNot(BeNil())
+
+									stale := &data.DataSetUpdate{State: pointer.FromString("open"), Condition: data.NewDataSetConditionWithVersionInternal(pointer.FromInt(dataSet.VersionInternal))}
+									result, err := repository.UpdateDataSet(ctx, id, stale)
+									Expect(err).ToNot(HaveOccurred())
+									Expect(result).To(BeNil())
+
+									current := &data.DataSetUpdate{State: pointer.FromString("open"), Condition: data.NewDataSetConditionWithVersionInternal(pointer.FromInt(updated.VersionInternal))}
+									result, err = repository.UpdateDataSet(ctx, id, current)
+									Expect(err).ToNot(HaveOccurred())
+									Expect(result).ToNot(BeNil())
+									Expect(result.VersionInternal).To(Equal(updated.VersionInternal + 1))
+									Expect(*result.State).To(Equal("open"))
+
+									logger.AssertDebug("DataSetRepository.UpdateDataSet", log.Fields{"id": id, "update": update})
+								})
+
+								It("lets exactly one of several concurrent conditional updates through", func() {
+									const count = 10
+									var waitGroup sync.WaitGroup
+									var mutex sync.Mutex
+									var succeeded []int
+									for index := range count {
+										waitGroup.Add(1)
+										go func() {
+											defer GinkgoRecover()
+											defer waitGroup.Done()
+											concurrent := &data.DataSetUpdate{
+												Metadata:  &map[string]any{"winner": float64(index)},
+												Condition: data.NewDataSetConditionWithVersionInternal(pointer.FromInt(dataSet.VersionInternal)),
+											}
+											result, err := repository.UpdateDataSet(ctx, id, concurrent)
+											Expect(err).ToNot(HaveOccurred())
+											if result != nil {
+												mutex.Lock()
+												succeeded = append(succeeded, index)
+												mutex.Unlock()
+											}
+										}()
+									}
+									waitGroup.Wait()
+									Expect(succeeded).To(HaveLen(1))
+
+									result, err := repository.GetDataSet(ctx, id)
+									Expect(err).ToNot(HaveOccurred())
+									Expect(result.Metadata).To(Equal(map[string]any{"winner": float64(succeeded[0])}))
+									Expect(result.VersionInternal).To(Equal(dataSet.VersionInternal + 1))
+
+									Expect(repository.UpdateDataSet(ctx, id, update)).ToNot(BeNil())
+								})
 							})
 						})
 
@@ -2729,6 +2816,8 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								ValidateDataSet(dataSetCollection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
 								ValidateDataSet(dataSetCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
 								Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(Succeed())
+								dataSetExistingOne.VersionInternal++
+								dataSetExistingTwo.VersionInternal++
 								Expect(dataSetCollection.CountDocuments(ctx, bson.M{"type": "upload"})).To(Equal(int64(4)))
 								ValidateDataSet(dataSetCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{"deletedTime": 0}, dataSetExistingTwo, dataSetExistingOne)
 								ValidateDataSet(dataSetCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther)

@@ -55,6 +55,8 @@ const (
 	TimeZoneOffsetMinimum  = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
 	VersionInternalMinimum = 0
 
+	ErrorCodeDataSetUpdateConflict = "data-set-update-conflict"
+
 	VersionLengthMinimum = 5
 )
 
@@ -232,6 +234,8 @@ func (d *DataSetCreate) Normalize(normalizer structure.Normalizer) {
 	}
 }
 
+// DataSetUpdate changes a data set. Metadata replaces the data set's metadata wholesale and Condition requires the
+// data set's version internal to match the one read; neither is parsed from a request nor sent by the HTTP client.
 type DataSetUpdate struct {
 	Active             *bool                   `json:"-"`
 	DeviceID           *string                 `json:"deviceId,omitempty"`
@@ -242,6 +246,8 @@ type DataSetUpdate struct {
 	Time               *time.Time              `json:"time,omitempty"`
 	TimeZoneName       *string                 `json:"timezone,omitempty"`
 	TimeZoneOffset     *int                    `json:"timezoneOffset,omitempty"`
+	Metadata           *map[string]any         `json:"-"`
+	Condition          *DataSetCondition       `json:"-"`
 }
 
 func NewDataSetUpdate() *DataSetUpdate {
@@ -266,11 +272,29 @@ func (d *DataSetUpdate) Validate(validator structure.Validator) {
 	validator.Time("time", d.Time).NotZero()
 	validator.String("timezone", d.TimeZoneName).Using(timeZone.NameValidator)
 	validator.Int("timezoneOffset", d.TimeZoneOffset).InRange(-12*60, 14*60)
+	validator.Object("metadata", d.Metadata).SizeLessThanOrEqualTo(metadata.MetadataSizeMaximum)
+	if d.Condition != nil {
+		d.Condition.Validate(validator.WithReference("condition"))
+	}
 }
 
 func (d *DataSetUpdate) IsEmpty() bool {
 	return d.Active == nil && d.DeviceID == nil && d.DeviceModel == nil && d.DeviceSerialNumber == nil &&
-		d.Deduplicator == nil && d.State == nil && d.Time == nil && d.TimeZoneName == nil && d.TimeZoneOffset == nil
+		d.Deduplicator == nil && d.State == nil && d.Time == nil && d.TimeZoneName == nil && d.TimeZoneOffset == nil &&
+		d.Metadata == nil
+}
+
+// DataSetCondition applies an update only to the data set at the version internal it was read at.
+type DataSetCondition struct {
+	VersionInternal *int `json:"-"`
+}
+
+func NewDataSetConditionWithVersionInternal(versionInternal *int) *DataSetCondition {
+	return &DataSetCondition{VersionInternal: versionInternal}
+}
+
+func (d *DataSetCondition) Validate(validator structure.Validator) {
+	validator.Int("_version", d.VersionInternal).GreaterThanOrEqualTo(VersionInternalMinimum)
 }
 
 func NewSetID() string {
@@ -298,6 +322,15 @@ func ErrorValueStringAsSetIDNotValid(value string) error {
 	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as data set id", value)
 }
 
+func ErrorDataSetUpdateConflict() error {
+	return errors.Prepared(ErrorCodeDataSetUpdateConflict, "data set update conflict", "data set was modified or deleted since it was read")
+}
+
+// IsErrorDataSetUpdateConflict reports whether the error, or its cause, is a data set update conflict.
+func IsErrorDataSetUpdateConflict(err error) bool {
+	return err != nil && errors.Code(errors.Cause(err)) == ErrorCodeDataSetUpdateConflict
+}
+
 var setIDExpression = regexp.MustCompile("^(upid_[0-9a-f]{12}|upid_[0-9a-f]{32}|[0-9a-f]{32})$") // TODO: Want just "[0-9a-f]{32}"
 
 type DataSet struct {
@@ -322,6 +355,7 @@ type DataSet struct {
 	DeviceTags          *[]string               `json:"deviceTags,omitempty" bson:"deviceTags,omitempty"`
 	DeviceTime          *string                 `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
 	ID                  *string                 `json:"id,omitempty" bson:"id,omitempty"`
+	Metadata            map[string]any          `json:"-" bson:"metadata,omitempty"`
 	ModifiedTime        *time.Time              `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 	ModifiedUserID      *string                 `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
 	Payload             *metadata.Metadata      `json:"payload,omitempty" bson:"payload,omitempty"`
@@ -483,6 +517,7 @@ func (d *DataSet) Validate(validator structure.Validator) {
 		validator.String("_userId", d.UserID).Exists().Using(user.IDValidator)
 		validator.Int("_version", &d.VersionInternal).Exists().GreaterThanOrEqualTo(VersionInternalMinimum)
 	}
+	validator.Object("metadata", &d.Metadata).SizeLessThanOrEqualTo(metadata.MetadataSizeMaximum)
 
 	validator.String("version", d.Version).LengthGreaterThanOrEqualTo(VersionLengthMinimum)
 }
