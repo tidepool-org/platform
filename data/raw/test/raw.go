@@ -44,6 +44,9 @@ func RandomFilter(options ...test.Option) *dataRaw.Filter {
 	}
 	if filter.SequenceGroup != nil {
 		filter.SequenceNumberAfter = test.RandomOptional(RandomSequenceNumber, options...)
+		if filter.SequenceNumberAfter == nil {
+			filter.SequenceNumberFrom = test.RandomOptional(RandomSequenceNumber, options...)
+		}
 	}
 	return filter
 }
@@ -62,6 +65,7 @@ func CloneFilter(datum *dataRaw.Filter) *dataRaw.Filter {
 		MediaTypes:          pointer.CloneStringArray(datum.MediaTypes),
 		SequenceGroup:       pointer.Clone(datum.SequenceGroup),
 		SequenceNumberAfter: pointer.Clone(datum.SequenceNumberAfter),
+		SequenceNumberFrom:  pointer.Clone(datum.SequenceNumberFrom),
 	}
 }
 
@@ -96,6 +100,9 @@ func NewObjectFromFilter(datum *dataRaw.Filter, objectFormat test.ObjectFormat) 
 	}
 	if datum.SequenceNumberAfter != nil {
 		object["sequenceNumberAfter"] = test.NewObjectFromInt64(*datum.SequenceNumberAfter, objectFormat)
+	}
+	if datum.SequenceNumberFrom != nil {
+		object["sequenceNumberFrom"] = test.NewObjectFromInt64(*datum.SequenceNumberFrom, objectFormat)
 	}
 	return object
 }
@@ -208,6 +215,7 @@ func CloneUpdate(datum *dataRaw.Update) *dataRaw.Update {
 		ArchivableTime: pointer.CloneTime(datum.ArchivableTime),
 		ArchivedTime:   pointer.CloneTime(datum.ArchivedTime),
 		Metadata:       metadataTest.CloneMetadataMapPointer(datum.Metadata),
+		ClearProcessed: datum.ClearProcessed,
 	}
 }
 
@@ -227,6 +235,9 @@ func NewObjectFromUpdate(datum *dataRaw.Update, objectFormat test.ObjectFormat) 
 	}
 	if datum.Metadata != nil {
 		object["metadata"] = metadataTest.NewObjectFromMetadataMap(*datum.Metadata, objectFormat)
+	}
+	if datum.ClearProcessed {
+		object["clearProcessed"] = test.NewObjectFromBool(datum.ClearProcessed, objectFormat)
 	}
 	return object
 }

@@ -30,6 +30,8 @@ const (
 
 	SortCreatedTime = "createdTime"
 	SortSequence    = "sequence"
+
+	ErrorCodeDataRawUpdateConflict = "data-raw-update-conflict"
 )
 
 // ListOption chooses the sort of List: SortCreatedTime by default, or SortSequence, by minimum sequence group, then
@@ -74,6 +76,9 @@ type Filter struct {
 	// Raw whose minimum sequence is in SequenceGroup and after this number, whatever its maximum, even in a later
 	// group. Requires SequenceGroup, since sequence numbers are only comparable within a group.
 	SequenceNumberAfter *int64 `json:"sequenceNumberAfter,omitempty" bson:"sequenceNumberAfter,omitempty"`
+
+	// As SequenceNumberAfter, but inclusive. Requires SequenceGroup; exclusive with SequenceNumberAfter.
+	SequenceNumberFrom *int64 `json:"sequenceNumberFrom,omitempty" bson:"sequenceNumberFrom,omitempty"`
 }
 
 func (f *Filter) Parse(parser structure.ObjectParser) {
@@ -86,6 +91,7 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 	f.MediaTypes = parser.StringArray("mediaTypes")
 	f.SequenceGroup = parser.Int64("sequenceGroup")
 	f.SequenceNumberAfter = parser.Int64("sequenceNumberAfter")
+	f.SequenceNumberFrom = parser.Int64("sequenceNumberFrom")
 }
 
 func (f *Filter) Validate(validator structure.Validator) {
@@ -94,10 +100,14 @@ func (f *Filter) Validate(validator structure.Validator) {
 	validator.String("dataSetId", f.DataSetID).Using(data.SetIDValidator)
 	validator.StringArray("mediaTypes", f.MediaTypes).NotEmpty().EachUsing(net.MediaTypeValidator).EachUnique()
 	sequenceGroupValidator := validator.Int64("sequenceGroup", f.SequenceGroup).GreaterThanOrEqualTo(0)
-	if f.SequenceNumberAfter != nil {
+	if f.SequenceNumberAfter != nil || f.SequenceNumberFrom != nil {
 		sequenceGroupValidator.Exists()
 	}
 	validator.Int64("sequenceNumberAfter", f.SequenceNumberAfter).GreaterThanOrEqualTo(0)
+	sequenceNumberFromValidator := validator.Int64("sequenceNumberFrom", f.SequenceNumberFrom).GreaterThanOrEqualTo(0)
+	if f.SequenceNumberAfter != nil {
+		sequenceNumberFromValidator.NotExists()
+	}
 }
 
 func (f *Filter) CreatedTime() *time.Time {
@@ -157,11 +167,14 @@ func (c *Content) Validate(validator structure.Validator) {
 	}
 }
 
+// Update changes a raw. ClearProcessed returns a processed raw to unprocessed by unsetting processedTime and
+// archivableTime; it is exclusive with setting them and is not parsed from requests.
 type Update struct {
 	ProcessedTime  *time.Time      `json:"processedTime,omitempty" bson:"processedTime,omitempty"`
 	ArchivableTime *time.Time      `json:"archivableTime,omitempty" bson:"archivableTime,omitempty"`
 	ArchivedTime   *time.Time      `json:"archivedTime,omitempty" bson:"archivedTime,omitempty"`
 	Metadata       *map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	ClearProcessed bool            `json:"clearProcessed,omitempty" bson:"clearProcessed,omitempty"`
 }
 
 func (u *Update) Parse(parser structure.ObjectParser) {
@@ -172,12 +185,16 @@ func (u *Update) Parse(parser structure.ObjectParser) {
 }
 
 func (u *Update) Validate(validator structure.Validator) {
-	validator.Time("processedTime", u.ProcessedTime).NotZero().BeforeNow(time.Second)
-	validator.Time("archivableTime", u.ArchivableTime).NotZero()
+	processedTimeValidator := validator.Time("processedTime", u.ProcessedTime).NotZero().BeforeNow(time.Second)
+	archivableTimeValidator := validator.Time("archivableTime", u.ArchivableTime).NotZero()
 	validator.Time("archivedTime", u.ArchivedTime).NotZero().BeforeNow(time.Second)
 	validator.Object("metadata", u.Metadata).SizeLessThanOrEqualTo(MetadataSizeMaximum)
+	if u.ClearProcessed {
+		processedTimeValidator.NotExists()
+		archivableTimeValidator.NotExists()
+	}
 
-	if u.ProcessedTime == nil && u.ArchivableTime == nil && u.ArchivedTime == nil && u.Metadata == nil {
+	if u.ProcessedTime == nil && u.ArchivableTime == nil && u.ArchivedTime == nil && u.Metadata == nil && !u.ClearProcessed {
 		validator.ReportError(structureValidator.ErrorValuesNotExistForAny("archivableTime", "archivedTime", "metadata", "processedTime"))
 	}
 }
@@ -288,6 +305,15 @@ func ValidateDataRawID(value string) error {
 
 func ErrorValueStringAsDataRawIDNotValid(value string) error {
 	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as data raw id", value)
+}
+
+func ErrorDataRawUpdateConflict() error {
+	return errors.Prepared(ErrorCodeDataRawUpdateConflict, "data raw update conflict", "data raw was modified or deleted since it was read")
+}
+
+// IsErrorDataRawUpdateConflict reports whether the error, or its cause, is a data raw update conflict.
+func IsErrorDataRawUpdateConflict(err error) bool {
+	return err != nil && errors.Code(errors.Cause(err)) == ErrorCodeDataRawUpdateConflict
 }
 
 var idExpression = regexp.MustCompile("^([0-9a-f]{24}):([0-9]{4}-[0-9]{2}-[0-9]{2})$")

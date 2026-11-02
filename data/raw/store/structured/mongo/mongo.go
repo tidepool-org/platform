@@ -173,6 +173,8 @@ func (s *Store) List(ctx context.Context, userID string, filter *dataRaw.Filter,
 		query[metadataKeyMinimumSequenceGroup] = *filter.SequenceGroup
 		if filter.SequenceNumberAfter != nil {
 			query[metadataKeyMinimumSequenceNumber] = bson.M{"$gt": *filter.SequenceNumberAfter}
+		} else if filter.SequenceNumberFrom != nil {
+			query[metadataKeyMinimumSequenceNumber] = bson.M{"$gte": *filter.SequenceNumberFrom}
 		} else {
 			query[metadataKeyMaximumSequenceGroup] = *filter.SequenceGroup
 		}
@@ -308,9 +310,7 @@ func (s *Store) Create(ctx context.Context, userID string, dataSetID string, cre
 
 	ctx, lgr = log.ContextAndLoggerWithField(ctx, "document", document)
 
-	// From this point forward, the context should not be cancelable
-	ctx = context.WithoutCancel(ctx)
-
+	// The insert honours the caller's context so a write cannot outlive the deadline of the work that issues it
 	result, err := s.InsertOne(ctx, document)
 	lgr = lgr.WithError(err)
 	if err != nil {
@@ -446,12 +446,15 @@ func (s *Store) Update(ctx context.Context, id string, condition *storeStructure
 	if update.Metadata != nil {
 		set["metadata"] = *update.Metadata
 	}
-
-	// From this point forward, the context should not be cancelable
-	ctx = context.WithoutCancel(ctx)
+	unset := bson.M{}
+	if update.ClearProcessed {
+		unset["processedTime"] = true
+		unset["archivableTime"] = true
+	}
 
 	var document *Document
-	err = s.FindOneAndUpdate(ctx, query, s.ConstructUpdate(set, nil)).Decode(&document)
+	// The update honours the caller's context so a write cannot outlive the deadline of the work that issues it
+	err = s.FindOneAndUpdate(ctx, query, s.ConstructUpdate(set, unset)).Decode(&document)
 	lgr = lgr.WithError(err)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
