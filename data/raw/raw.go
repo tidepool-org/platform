@@ -28,6 +28,10 @@ const (
 	MetadataKeyMaximumSequenceGroup  = "maximumSequenceGroup"
 	MetadataKeyMaximumSequenceNumber = "maximumSequenceNumber"
 
+	// The metadata key the processed ordinal filter queries: the position of the raw data in the processing order of
+	// its data set, which the work that processes it writes.
+	MetadataKeyProcessedOrdinal = "processedOrdinal"
+
 	SortCreatedTime = "createdTime"
 	SortSequence    = "sequence"
 
@@ -79,6 +83,9 @@ type Filter struct {
 
 	// As SequenceNumberAfter, but inclusive. Requires SequenceGroup; exclusive with SequenceNumberAfter.
 	SequenceNumberFrom *int64 `json:"sequenceNumberFrom,omitempty" bson:"sequenceNumberFrom,omitempty"`
+
+	// Raw with a processed ordinal at or after this one; raw without one is excluded
+	ProcessedOrdinalFrom *int64 `json:"processedOrdinalFrom,omitempty" bson:"processedOrdinalFrom,omitempty"`
 }
 
 func (f *Filter) Parse(parser structure.ObjectParser) {
@@ -92,6 +99,7 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 	f.SequenceGroup = parser.Int64("sequenceGroup")
 	f.SequenceNumberAfter = parser.Int64("sequenceNumberAfter")
 	f.SequenceNumberFrom = parser.Int64("sequenceNumberFrom")
+	f.ProcessedOrdinalFrom = parser.Int64("processedOrdinalFrom")
 }
 
 func (f *Filter) Validate(validator structure.Validator) {
@@ -108,6 +116,7 @@ func (f *Filter) Validate(validator structure.Validator) {
 	if f.SequenceNumberAfter != nil {
 		sequenceNumberFromValidator.NotExists()
 	}
+	validator.Int64("processedOrdinalFrom", f.ProcessedOrdinalFrom).GreaterThanOrEqualTo(0)
 }
 
 func (f *Filter) CreatedTime() *time.Time {
@@ -168,7 +177,8 @@ func (c *Content) Validate(validator structure.Validator) {
 }
 
 // Update changes a raw. ClearProcessed returns a processed raw to unprocessed by unsetting processedTime and
-// archivableTime; it is exclusive with setting them and is not parsed from requests.
+// archivableTime; it is exclusive with setting any of the times, matches no archived raw since its content is gone,
+// and is not parsed from requests.
 type Update struct {
 	ProcessedTime  *time.Time      `json:"processedTime,omitempty" bson:"processedTime,omitempty"`
 	ArchivableTime *time.Time      `json:"archivableTime,omitempty" bson:"archivableTime,omitempty"`
@@ -187,11 +197,12 @@ func (u *Update) Parse(parser structure.ObjectParser) {
 func (u *Update) Validate(validator structure.Validator) {
 	processedTimeValidator := validator.Time("processedTime", u.ProcessedTime).NotZero().BeforeNow(time.Second)
 	archivableTimeValidator := validator.Time("archivableTime", u.ArchivableTime).NotZero()
-	validator.Time("archivedTime", u.ArchivedTime).NotZero().BeforeNow(time.Second)
+	archivedTimeValidator := validator.Time("archivedTime", u.ArchivedTime).NotZero().BeforeNow(time.Second)
 	validator.Object("metadata", u.Metadata).SizeLessThanOrEqualTo(MetadataSizeMaximum)
 	if u.ClearProcessed {
 		processedTimeValidator.NotExists()
 		archivableTimeValidator.NotExists()
+		archivedTimeValidator.NotExists()
 	}
 
 	if u.ProcessedTime == nil && u.ArchivableTime == nil && u.ArchivedTime == nil && u.Metadata == nil && !u.ClearProcessed {

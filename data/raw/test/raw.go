@@ -48,6 +48,7 @@ func RandomFilter(options ...test.Option) *dataRaw.Filter {
 			filter.SequenceNumberFrom = test.RandomOptional(RandomSequenceNumber, options...)
 		}
 	}
+	filter.ProcessedOrdinalFrom = test.RandomOptional(RandomSequenceNumber, options...)
 	return filter
 }
 
@@ -56,16 +57,17 @@ func CloneFilter(datum *dataRaw.Filter) *dataRaw.Filter {
 		return nil
 	}
 	return &dataRaw.Filter{
-		CreatedDate:         pointer.CloneString(datum.CreatedDate),
-		CreatedTimeStart:    pointer.CloneTime(datum.CreatedTimeStart),
-		DataSetID:           pointer.CloneString(datum.DataSetID),
-		Processed:           pointer.CloneBool(datum.Processed),
-		Archivable:          pointer.CloneBool(datum.Archivable),
-		Archived:            pointer.CloneBool(datum.Archived),
-		MediaTypes:          pointer.CloneStringArray(datum.MediaTypes),
-		SequenceGroup:       pointer.Clone(datum.SequenceGroup),
-		SequenceNumberAfter: pointer.Clone(datum.SequenceNumberAfter),
-		SequenceNumberFrom:  pointer.Clone(datum.SequenceNumberFrom),
+		CreatedDate:          pointer.CloneString(datum.CreatedDate),
+		CreatedTimeStart:     pointer.CloneTime(datum.CreatedTimeStart),
+		DataSetID:            pointer.CloneString(datum.DataSetID),
+		Processed:            pointer.CloneBool(datum.Processed),
+		Archivable:           pointer.CloneBool(datum.Archivable),
+		Archived:             pointer.CloneBool(datum.Archived),
+		MediaTypes:           pointer.CloneStringArray(datum.MediaTypes),
+		SequenceGroup:        pointer.Clone(datum.SequenceGroup),
+		SequenceNumberAfter:  pointer.Clone(datum.SequenceNumberAfter),
+		SequenceNumberFrom:   pointer.Clone(datum.SequenceNumberFrom),
+		ProcessedOrdinalFrom: pointer.Clone(datum.ProcessedOrdinalFrom),
 	}
 }
 
@@ -103,6 +105,9 @@ func NewObjectFromFilter(datum *dataRaw.Filter, objectFormat test.ObjectFormat) 
 	}
 	if datum.SequenceNumberFrom != nil {
 		object["sequenceNumberFrom"] = test.NewObjectFromInt64(*datum.SequenceNumberFrom, objectFormat)
+	}
+	if datum.ProcessedOrdinalFrom != nil {
+		object["processedOrdinalFrom"] = test.NewObjectFromInt64(*datum.ProcessedOrdinalFrom, objectFormat)
 	}
 	return object
 }

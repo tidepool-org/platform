@@ -36,6 +36,7 @@ const (
 
 	metadataKeyMinimumSequenceGroup  = "metadata." + dataRaw.MetadataKeyMinimumSequenceGroup
 	metadataKeyMinimumSequenceNumber = "metadata." + dataRaw.MetadataKeyMinimumSequenceNumber
+	metadataKeyProcessedOrdinal      = "metadata." + dataRaw.MetadataKeyProcessedOrdinal
 	metadataKeyMaximumSequenceGroup  = "metadata." + dataRaw.MetadataKeyMaximumSequenceGroup
 )
 
@@ -98,6 +99,18 @@ func (s *Store) EnsureIndexes() error {
 					{Key: metadataKeyMinimumSequenceGroup, Value: bson.M{"$exists": true}},
 				}).
 				SetName("UserIdDataSetIdProcessedMinimumSequence"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "userId", Value: 1},
+				{Key: "dataSetId", Value: 1},
+				{Key: metadataKeyProcessedOrdinal, Value: 1},
+			},
+			Options: mongoOptions.Index().
+				SetPartialFilterExpression(bson.D{
+					{Key: metadataKeyProcessedOrdinal, Value: bson.M{"$exists": true}},
+				}).
+				SetName("UserIdDataSetIdProcessedOrdinal"),
 		},
 	})
 }
@@ -178,6 +191,9 @@ func (s *Store) List(ctx context.Context, userID string, filter *dataRaw.Filter,
 		} else {
 			query[metadataKeyMaximumSequenceGroup] = *filter.SequenceGroup
 		}
+	}
+	if filter.ProcessedOrdinalFrom != nil {
+		query[metadataKeyProcessedOrdinal] = bson.M{"$gte": *filter.ProcessedOrdinalFrom}
 	}
 
 	opts := storeStructuredMongo.FindWithPagination(pagination).
@@ -310,8 +326,9 @@ func (s *Store) Create(ctx context.Context, userID string, dataSetID string, cre
 
 	ctx, lgr = log.ContextAndLoggerWithField(ctx, "document", document)
 
-	// The insert honours the caller's context so a write cannot outlive the deadline of the work that issues it
-	result, err := s.InsertOne(ctx, document)
+	// The insert is detached from the caller's context: a cancelled insert may still land, and the caller cannot tell,
+	// so letting it finish keeps a retry from creating a second raw
+	result, err := s.InsertOne(context.WithoutCancel(ctx), document)
 	lgr = lgr.WithError(err)
 	if err != nil {
 		lgr.Error("unable to create raw")
@@ -448,13 +465,18 @@ func (s *Store) Update(ctx context.Context, id string, condition *storeStructure
 	}
 	unset := bson.M{}
 	if update.ClearProcessed {
+		query["archivedTime"] = bson.M{"$exists": false} // An archived raw has no content left to process again
 		unset["processedTime"] = true
 		unset["archivableTime"] = true
 	}
 
+	// The update honours the caller's context so a write cannot outlive the deadline of the work that issues it, and
+	// returns the document as written so the caller sees its own write rather than a later one
+	opts := mongoOptions.FindOneAndUpdate().
+		SetReturnDocument(mongoOptions.After).
+		SetProjection(bson.M{"data": 0})
 	var document *Document
-	// The update honours the caller's context so a write cannot outlive the deadline of the work that issues it
-	err = s.FindOneAndUpdate(ctx, query, s.ConstructUpdate(set, unset)).Decode(&document)
+	err = s.FindOneAndUpdate(ctx, query, s.ConstructUpdate(set, unset), opts).Decode(&document)
 	lgr = lgr.WithError(err)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -463,16 +485,6 @@ func (s *Store) Update(ctx context.Context, id string, condition *storeStructure
 			lgr.Error("unable to update raw")
 			return nil, errors.Wrap(err, "unable to update raw")
 		}
-	}
-
-	query = bson.M{"_id": objectID}
-	document, err = s.findOne(ctx, query)
-	lgr = lgr.WithError(err)
-	if err != nil {
-		lgr.Error("unable to get raw after update")
-		return nil, errors.Wrap(err, "unable to get raw after update")
-	} else if document == nil {
-		return nil, nil
 	}
 
 	return document.AsRaw(), nil
