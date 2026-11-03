@@ -270,7 +270,7 @@ func (m *Migration) migrate(ctx context.Context, s *stores, dataSet dataSetDocum
 	create := &work.Create{
 		Type:              tandemIngestWorkType,
 		GroupID:           pointer.From(fmt.Sprintf("%s:%s", tandemWorkGroupPrefix, dataSource.ID)),
-		DeduplicationID:   pointer.From(fmt.Sprintf("%s:reingest:%d", dataSource.ID, now.Unix())),
+		DeduplicationID:   pointer.From(fmt.Sprintf("%s:%s:reingest:%d", dataSource.ID, dataSet.UploadID, now.Unix())),
 		SerialID:          pointer.From(fmt.Sprintf("%s:%s", tandemIngestWorkType, dataSet.UploadID)),
 		ProcessingTimeout: int(tandemIngestTimeout.Seconds()),
 		Metadata: map[string]any{
