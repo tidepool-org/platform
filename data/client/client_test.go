@@ -98,7 +98,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns an error without a request when the update has a condition", func() {
-				update := &data.DataSetUpdate{State: pointer.FromString("closed"), Condition: data.NewDataSetConditionWithVersionInternal(pointer.FromInt(1))}
+				update := &data.DataSetUpdate{State: pointer.FromString("closed"), Condition: data.NewDataSetConditionWithRevision(pointer.FromInt(1))}
 				result, err := clnt.UpdateDataSet(ctx, dataTest.RandomDataSetID(), update)
 				Expect(err).To(MatchError("update with metadata or condition is not supported"))
 				Expect(result).To(BeNil())

@@ -194,66 +194,14 @@ var _ = Describe("mixin", func() {
 			})
 		})
 
-		Context("NewMixinWithParsedMetadata", func() {
-			It("returns an error when provider is missing", func() {
-				mixin, err := dataSetWork.NewMixinWithParsedMetadata[workTest.MockMetadata](nil, mockDataSetClient)
-				Expect(err).To(MatchError("provider is missing"))
-				Expect(mixin).To(BeNil())
-			})
-
-			It("returns an error when data set client is missing", func() {
-				mixin, err := dataSetWork.NewMixinWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, nil)
-				Expect(err).To(MatchError("data set client is missing"))
-				Expect(mixin).To(BeNil())
-			})
-
-			It("returns successfully", func() {
-				mixin, err := dataSetWork.NewMixinWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataSetClient)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(mixin).ToNot(BeNil())
-			})
-		})
-
-		Context("NewMixinFromWorkWithParsedMetadata", func() {
-			var workMetadata *dataSetWork.Metadata
-
-			BeforeEach(func() {
-				workMetadata = dataSetWorkTest.RandomMetadata(test.AllowOptionals())
-			})
-
-			It("returns an error when provider is missing", func() {
-				mixin, err := dataSetWork.NewMixinFromWorkWithParsedMetadata[workTest.MockMetadata](nil, mockDataSetClient, workMetadata)
-				Expect(err).To(MatchError("provider is missing"))
-				Expect(mixin).To(BeNil())
-			})
-
-			It("returns an error when data set client is missing", func() {
-				mixin, err := dataSetWork.NewMixinFromWorkWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, nil, workMetadata)
-				Expect(err).To(MatchError("data set client is missing"))
-				Expect(mixin).To(BeNil())
-			})
-
-			It("returns an error when work metadata is missing", func() {
-				mixin, err := dataSetWork.NewMixinFromWorkWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataSetClient, nil)
-				Expect(err).To(MatchError("work metadata is missing"))
-				Expect(mixin).To(BeNil())
-			})
-
-			It("returns successfully", func() {
-				mixin, err := dataSetWork.NewMixinFromWorkWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataSetClient, workMetadata)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(mixin).ToNot(BeNil())
-			})
-		})
-
 		Context("mixin", func() {
 			var workMetadata *dataSetWork.Metadata
-			var mixin dataSetWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata]
+			var mixin dataSetWork.MixinFromWork
 
 			BeforeEach(func() {
 				var err error
 				workMetadata = dataSetWorkTest.RandomMetadata(test.AllowOptionals())
-				mixin, err = dataSetWork.NewMixinFromWorkWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataSetClient, workMetadata)
+				mixin, err = dataSetWork.NewMixinFromWork(mockWorkProvider, mockDataSetClient, workMetadata)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mixin).ToNot(BeNil())
 			})
@@ -270,12 +218,12 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns true after SetDataSet is called with a data set", func() {
-					Expect(mixin.SetDataSet(randomDataSetWithMockMetadata())).To(BeNil())
+					Expect(mixin.SetDataSet(dataTest.RandomDataSet(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.HasDataSet()).To(BeTrue())
 				})
 
 				It("returns false after SetDataSet is called with nil", func() {
-					Expect(mixin.SetDataSet(randomDataSetWithMockMetadata())).To(BeNil())
+					Expect(mixin.SetDataSet(dataTest.RandomDataSet(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.HasDataSet()).To(BeTrue())
 					Expect(mixin.SetDataSet(nil)).To(BeNil())
 					Expect(mixin.HasDataSet()).To(BeFalse())
@@ -288,12 +236,12 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns nil after SetDataSet is called with a data set", func() {
-					Expect(mixin.SetDataSet(randomDataSetWithMockMetadata())).To(BeNil())
+					Expect(mixin.SetDataSet(dataTest.RandomDataSet(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.EnsureDataSet()).To(BeNil())
 				})
 
 				It("returns failed result after SetDataSet is called with nil", func() {
-					Expect(mixin.SetDataSet(randomDataSetWithMockMetadata())).To(BeNil())
+					Expect(mixin.SetDataSet(dataTest.RandomDataSet(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.EnsureDataSet()).To(BeNil())
 					Expect(mixin.SetDataSet(nil)).To(BeNil())
 					Expect(mixin.EnsureDataSet()).To(workTest.MatchFailedProcessResultError(MatchError("data set is missing")))
@@ -306,68 +254,29 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns the data set after SetDataSet is called with a data set", func() {
-					dataSt := randomDataSetWithMockMetadata()
+					dataSt := dataTest.RandomDataSet(test.AllowOptionals())
 					Expect(mixin.SetDataSet(dataSt)).To(BeNil())
 					Expect(mixin.DataSet()).To(Equal(dataSt))
 				})
 
 				It("returns nil after SetDataSet is called with nil", func() {
-					Expect(mixin.SetDataSet(randomDataSetWithMockMetadata())).To(BeNil())
+					Expect(mixin.SetDataSet(dataTest.RandomDataSet(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.SetDataSet(nil)).To(BeNil())
 					Expect(mixin.DataSet()).To(BeNil())
 				})
 			})
 
 			Context("SetDataSet", func() {
-				It("returns failed process result when unable to decode metadata", func() {
-					dataSt := randomDataSetWithMockMetadata()
-					dataSt.Metadata["mock"] = true
-					Expect(mixin.SetDataSet(dataSt)).To(workTest.MatchFailedProcessResultError(MatchError("unable to decode data set metadata; unable to decode metadata; type is not string, but bool")))
-				})
-
 				It("decodes metadata from data set and returns nil", func() {
-					dataStMetadata := workTest.RandomMockMetadata()
-					dataSt := randomDataSetWithMockMetadata()
-					dataSt.Metadata["mock"] = *dataStMetadata.Mock
+					dataSt := dataTest.RandomDataSet(test.AllowOptionals())
 					Expect(mixin.SetDataSet(dataSt)).To(BeNil())
 					Expect(mixin.DataSet()).To(Equal(dataSt))
-					Expect(mixin.DataSetMetadata()).To(Equal(dataStMetadata))
 				})
 
 				It("clears metadata when data set is nil and returns nil", func() {
-					Expect(mixin.SetDataSet(randomDataSetWithMockMetadata())).To(BeNil())
+					Expect(mixin.SetDataSet(dataTest.RandomDataSet(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.SetDataSet(nil)).To(BeNil())
 					Expect(mixin.DataSet()).To(BeNil())
-					Expect(mixin.DataSetMetadata()).To(BeNil())
-				})
-			})
-
-			Context("HasDataSetMetadata", func() {
-				It("returns false initially", func() {
-					Expect(mixin.HasDataSetMetadata()).To(BeFalse())
-				})
-
-				It("returns true after SetDataSetMetadata is called with non-nil value", func() {
-					Expect(mixin.SetDataSetMetadata(workTest.RandomMockMetadata(test.AllowOptionals()))).To(BeNil())
-					Expect(mixin.HasDataSetMetadata()).To(BeTrue())
-				})
-
-				It("returns false after SetDataSetMetadata is called with nil", func() {
-					Expect(mixin.SetDataSetMetadata(workTest.RandomMockMetadata(test.AllowOptionals()))).To(BeNil())
-					Expect(mixin.SetDataSetMetadata(nil)).To(BeNil())
-					Expect(mixin.HasDataSetMetadata()).To(BeFalse())
-				})
-			})
-
-			Context("DataSetMetadata", func() {
-				It("returns nil initially", func() {
-					Expect(mixin.DataSetMetadata()).To(BeNil())
-				})
-
-				It("returns the metadata after SetDataSetMetadata is called", func() {
-					dataStMetadata := workTest.RandomMockMetadata(test.AllowOptionals())
-					Expect(mixin.SetDataSetMetadata(dataStMetadata)).To(BeNil())
-					Expect(mixin.DataSetMetadata()).To(Equal(dataStMetadata))
 				})
 			})
 
@@ -378,7 +287,7 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("clears data set when data set is set", func() {
-					Expect(mixin.SetDataSet(randomDataSetWithMockMetadata())).To(BeNil())
+					Expect(mixin.SetDataSet(dataTest.RandomDataSet(test.AllowOptionals()))).To(BeNil())
 					mixin.ClearDataSet()
 					Expect(mixin.DataSet()).To(BeNil())
 				})
@@ -403,7 +312,7 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("sets the data set and returns nil on success", func() {
-					dataSt := randomDataSetWithMockMetadata()
+					dataSt := dataTest.RandomDataSet(test.AllowOptionals())
 					mockDataSetClient.EXPECT().GetDataSet(gomock.Not(gomock.Nil()), dataStID).Return(dataSt, nil)
 					Expect(mixin.FetchDataSet(dataStID)).To(BeNil())
 					Expect(mixin.DataSet()).To(Equal(dataSt))
@@ -420,7 +329,7 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns failed process result when data set is missing", func() {
-					Expect(mixin.SetDataSet(randomDataSetWithMockMetadata())).To(BeNil())
+					Expect(mixin.SetDataSet(dataTest.RandomDataSet(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.CreateDataSet(userID, dataSetCreate)).To(workTest.MatchFailedProcessResultError(MatchError("data set already exists")))
 				})
 
@@ -437,7 +346,7 @@ var _ = Describe("mixin", func() {
 					})
 
 					It("updates the data set and returns nil on success", func() {
-						createdDataSet := randomDataSetWithMockMetadata()
+						createdDataSet := dataTest.RandomDataSet(test.AllowOptionals())
 						mockDataSetClient.EXPECT().CreateUserDataSet(gomock.Not(gomock.Nil()), userID, dataSetCreate).Return(createdDataSet, nil)
 						Expect(mixin.CreateDataSet(userID, dataSetCreate)).To(BeNil())
 						Expect(mixin.DataSet()).To(Equal(createdDataSet))
@@ -446,10 +355,6 @@ var _ = Describe("mixin", func() {
 			})
 
 			Context("UpdateDataSet", func() {
-				It("returns failed process result when data set update is missing", func() {
-					Expect(mixin.UpdateDataSet(nil)).To(workTest.MatchFailedProcessResultError(MatchError("data set update is missing")))
-				})
-
 				It("returns failed process result when data set is missing", func() {
 					Expect(mixin.UpdateDataSet(&data.DataSetUpdate{})).To(workTest.MatchFailedProcessResultError(MatchError("data set is missing")))
 				})
@@ -458,17 +363,10 @@ var _ = Describe("mixin", func() {
 					var dataSt *data.DataSet
 					var dataStUpdate *data.DataSetUpdate
 
-					var expectedDataStUpdate *data.DataSetUpdate
-
 					BeforeEach(func() {
-						testString := test.RandomString()
-						dataSt = randomDataSetWithMockMetadata()
+						dataSt = dataTest.RandomDataSet(test.AllowOptionals())
 						Expect(mixin.SetDataSet(dataSt)).To(BeNil())
-						mixin.DataSetMetadata().Mock = pointer.From(testString)
 						dataStUpdate = dataTest.RandomDataSetUpdate(test.AllowOptionals())
-						expectedDataStUpdate = dataTest.CloneDataSetUpdate(dataStUpdate)
-						expectedDataStUpdate.Metadata = &map[string]any{"mock": testString}
-						expectedDataStUpdate.Condition = data.NewDataSetConditionWithVersionInternal(pointer.From(dataSt.VersionInternal))
 					})
 
 					It("returns failed process result when data set id is missing", func() {
@@ -476,69 +374,33 @@ var _ = Describe("mixin", func() {
 						Expect(mixin.UpdateDataSet(dataStUpdate)).To(workTest.MatchFailedProcessResultError(MatchError("data set id is missing")))
 					})
 
-					It("returns failed process result when the metadata cannot be encoded", func() {
-						mixin.DataSetMetadata().Any = func() {}
-						Expect(mixin.UpdateDataSet(dataStUpdate)).To(workTest.MatchFailedProcessResultError(MatchError("unable to encode data set metadata; unable to encode object; json: unsupported type: func()")))
-					})
-
 					It("returns failing process result when the client returns an error", func() {
 						testErr := errorsTest.RandomError()
-						mockDataSetClient.EXPECT().UpdateDataSet(gomock.Not(gomock.Nil()), *dataSt.ID, expectedDataStUpdate).Return(nil, testErr)
+						mockDataSetClient.EXPECT().UpdateDataSet(gomock.Not(gomock.Nil()), *dataSt.ID, dataStUpdate).Return(nil, testErr)
 						Expect(mixin.UpdateDataSet(dataStUpdate)).To(workTest.MatchFailingProcessResultError(MatchError(errors.Wrap(testErr, "unable to update data set").Error())))
 					})
 
-					It("returns failing process result with a conflict when the client returns a nil data set", func() {
-						mockDataSetClient.EXPECT().UpdateDataSet(gomock.Not(gomock.Nil()), *dataSt.ID, expectedDataStUpdate).Return(nil, nil)
-						result := mixin.UpdateDataSet(dataStUpdate)
-						Expect(result).To(workTest.MatchFailingProcessResultError(MatchError(errors.Wrap(data.ErrorDataSetUpdateConflict(), "unable to update data set").Error())))
-						Expect(data.IsErrorDataSetUpdateConflict(result.FailingUpdate.FailingError.Error)).To(BeTrue())
+					It("returns failed process result when the client returns a nil data set", func() {
+						mockDataSetClient.EXPECT().UpdateDataSet(gomock.Not(gomock.Nil()), *dataSt.ID, dataStUpdate).Return(nil, nil)
+						Expect(mixin.UpdateDataSet(dataStUpdate)).To(workTest.MatchFailedProcessResultError(MatchError("data set is missing")))
 					})
 
-					It("keeps a condition the update already carries", func() {
-						dataStUpdate.Condition = data.NewDataSetConditionWithVersionInternal(pointer.FromInt(dataSt.VersionInternal + 7))
-						expectedDataStUpdate.Condition = data.NewDataSetConditionWithVersionInternal(pointer.FromInt(dataSt.VersionInternal + 7))
-						updatedDataSet := randomDataSetWithMockMetadata()
-						mockDataSetClient.EXPECT().UpdateDataSet(gomock.Not(gomock.Nil()), *dataSt.ID, expectedDataStUpdate).Return(updatedDataSet, nil)
-						Expect(mixin.UpdateDataSet(dataStUpdate)).To(BeNil())
-					})
-
-					It("updates the data set with the metadata and the revision condition and returns nil on success", func() {
-						updatedDataSet := randomDataSetWithMockMetadata()
-						mockDataSetClient.EXPECT().UpdateDataSet(gomock.Not(gomock.Nil()), *dataSt.ID, expectedDataStUpdate).Return(updatedDataSet, nil)
+					It("updates the data set and returns nil on success", func() {
+						updatedDataSet := dataTest.RandomDataSet(test.AllowOptionals())
+						mockDataSetClient.EXPECT().UpdateDataSet(gomock.Not(gomock.Nil()), *dataSt.ID, dataStUpdate).Return(updatedDataSet, nil)
 						Expect(mixin.UpdateDataSet(dataStUpdate)).To(BeNil())
 						Expect(mixin.DataSet()).To(Equal(updatedDataSet))
 					})
 				})
 			})
 
-			Context("UpdateDataSetMetadata", func() {
-				It("returns failed process result when data set is missing", func() {
-					Expect(mixin.UpdateDataSetMetadata()).To(workTest.MatchFailedProcessResultError(MatchError("data set is missing")))
-				})
-
-				It("updates the data set and returns nil on success", func() {
-					testString := test.RandomString()
-					dataSt := randomDataSetWithMockMetadata()
-					Expect(mixin.SetDataSet(dataSt)).To(BeNil())
-					mixin.DataSetMetadata().Mock = pointer.From(testString)
-					expectedDataStUpdate := &data.DataSetUpdate{
-						Metadata:  &map[string]any{"mock": testString},
-						Condition: data.NewDataSetConditionWithVersionInternal(pointer.From(dataSt.VersionInternal)),
-					}
-					updatedDataSet := randomDataSetWithMockMetadata()
-					mockDataSetClient.EXPECT().UpdateDataSet(gomock.Not(gomock.Nil()), *dataSt.ID, expectedDataStUpdate).Return(updatedDataSet, nil)
-					Expect(mixin.UpdateDataSetMetadata()).To(BeNil())
-					Expect(mixin.DataSet()).To(Equal(updatedDataSet))
-				})
-			})
-
 			Context("HasWorkMetadata", func() {
 				It("returns false when work metadata is missing", func() {
-					mixinWithoutMetadata, err := dataSetWork.NewMixinWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataSetClient)
+					mixinWithoutMetadata, err := dataSetWork.NewMixin(mockWorkProvider, mockDataSetClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(mixinWithoutMetadata).ToNot(BeNil())
 					var ok bool
-					mixin, ok = mixinWithoutMetadata.(dataSetWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					mixin, ok = mixinWithoutMetadata.(dataSetWork.MixinFromWork)
 					Expect(ok).To(BeTrue())
 					Expect(mixin.HasWorkMetadata()).To(BeFalse())
 				})
@@ -550,11 +412,11 @@ var _ = Describe("mixin", func() {
 
 			Context("FetchDataSetFromWorkMetadata", func() {
 				It("returns failed process result when work metadata is missing", func() {
-					mixinWithoutMetadata, err := dataSetWork.NewMixinWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataSetClient)
+					mixinWithoutMetadata, err := dataSetWork.NewMixin(mockWorkProvider, mockDataSetClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(mixinWithoutMetadata).ToNot(BeNil())
 					var ok bool
-					mixin, ok = mixinWithoutMetadata.(dataSetWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					mixin, ok = mixinWithoutMetadata.(dataSetWork.MixinFromWork)
 					Expect(ok).To(BeTrue())
 					Expect(mixin.FetchDataSetFromWorkMetadata()).To(workTest.MatchFailedProcessResultError(MatchError("work metadata is missing")))
 				})
@@ -579,7 +441,7 @@ var _ = Describe("mixin", func() {
 
 				It("sets the data set and returns nil on success", func() {
 					workMetadata.DataSetID = pointer.From(dataTest.RandomDataSetID())
-					dataSt := randomDataSetWithMockMetadata()
+					dataSt := dataTest.RandomDataSet(test.AllowOptionals())
 					mockDataSetClient.EXPECT().GetDataSet(gomock.Not(gomock.Nil()), *workMetadata.DataSetID).Return(dataSt, nil)
 					Expect(mixin.FetchDataSetFromWorkMetadata()).To(BeNil())
 					Expect(mixin.DataSet()).To(Equal(dataSt))
@@ -592,26 +454,26 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns failed process result when data set id is missing", func() {
-					dataSt := randomDataSetWithMockMetadata()
+					dataSt := dataTest.RandomDataSet(test.AllowOptionals())
 					dataSt.ID = nil
 					Expect(mixin.SetDataSet(dataSt)).To(BeNil())
 					Expect(mixin.UpdateWorkMetadataFromDataSet()).To(workTest.MatchFailedProcessResultError(MatchError("data set id is missing")))
 				})
 
 				It("returns failed process result when work metadata is missing", func() {
-					mixinWithoutMetadata, err := dataSetWork.NewMixinWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataSetClient)
+					mixinWithoutMetadata, err := dataSetWork.NewMixin(mockWorkProvider, mockDataSetClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(mixinWithoutMetadata).ToNot(BeNil())
 					var ok bool
-					mixin, ok = mixinWithoutMetadata.(dataSetWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					mixin, ok = mixinWithoutMetadata.(dataSetWork.MixinFromWork)
 					Expect(ok).To(BeTrue())
-					dataSet := randomDataSetWithMockMetadata()
+					dataSet := dataTest.RandomDataSet(test.AllowOptionals())
 					Expect(mixin.SetDataSet(dataSet)).To(BeNil())
 					Expect(mixin.UpdateWorkMetadataFromDataSet()).To(workTest.MatchFailedProcessResultError(MatchError("work metadata is missing")))
 				})
 
 				It("updates work metadata with the data set id and returns nil", func() {
-					dataSt := randomDataSetWithMockMetadata()
+					dataSt := dataTest.RandomDataSet(test.AllowOptionals())
 					Expect(mixin.SetDataSet(dataSt)).To(BeNil())
 					Expect(mixin.UpdateWorkMetadataFromDataSet()).To(BeNil())
 					Expect(workMetadata.DataSetID).To(Equal(dataSt.ID))
@@ -621,31 +483,20 @@ var _ = Describe("mixin", func() {
 			Context("AddDataSetToContext", func() {
 				It("adds nil fields to context", func() {
 					mixin.AddDataSetToContext()
-					Expect(mockWorkProvider.Fields).To(Equal(log.Fields{"dataSet": log.Fields(nil), "dataSetMetadata": (*workTest.MockMetadata)(nil)}))
+					Expect(mockWorkProvider.Fields).To(Equal(log.Fields{"dataSet": log.Fields(nil)}))
 				})
 
 				It("adds non-nil fields to context", func() {
-					dataStMetadata := workTest.RandomMockMetadata(test.AllowOptionals())
-					dataSt := randomDataSetWithMockMetadata()
-					dataSt.Metadata = dataStMetadata.AsObject()
+					dataSt := dataTest.RandomDataSet(test.AllowOptionals())
 					Expect(mixin.SetDataSet(dataSt)).To(BeNil())
 					Expect(mockWorkProvider.Fields).To(Equal(log.Fields{
 						"dataSet": log.Fields{
-							"id":       dataSt.ID,
-							"userId":   dataSt.UserID,
-							"metadata": dataSt.Metadata,
-							"version":  dataSt.VersionInternal,
+							"id":     dataSt.ID,
+							"userId": dataSt.UserID,
 						},
-						"dataSetMetadata": dataStMetadata,
 					}))
 				})
 			})
 		})
 	})
 })
-
-func randomDataSetWithMockMetadata() *data.DataSet {
-	dataSt := dataTest.RandomDataSet(test.AllowOptionals())
-	dataSt.Metadata = workTest.RandomMockMetadata(test.AllowOptionals()).AsObject()
-	return dataSt
-}
