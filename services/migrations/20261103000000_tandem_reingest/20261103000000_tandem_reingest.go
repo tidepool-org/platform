@@ -259,7 +259,7 @@ func (m *Migration) migrate(ctx context.Context, s *stores, dataSet dataSetDocum
 
 	// Clearing the metadata releases the lease; the next ingest run starts from the switched data set
 	dataSetUpdate := bson.M{
-		"$set":   bson.M{"deduplicator": bson.M{"name": dataDeduplicatorDeduplicator.DataSetOriginReviseName, "version": dataDeduplicatorDeduplicator.DataSetOriginReviseVersion}, "modifiedTime": now},
+		"$set":   bson.M{"_deduplicator": bson.M{"name": dataDeduplicatorDeduplicator.DataSetOriginReviseName, "version": dataDeduplicatorDeduplicator.DataSetOriginReviseVersion}, "modifiedTime": now},
 		"$unset": bson.M{"metadata": ""},
 		"$inc":   bson.M{"revision": 1},
 	}
