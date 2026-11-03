@@ -292,13 +292,15 @@ func (m *Migration) migrate(ctx context.Context, s *stores, dataSet dataSetDocum
 }
 
 // acquireLease writes the ingest lease of the data set for the migration, unless an ingest run holds one that has not
-// expired, in which case it reports false.
+// expired, in which case it reports false. A lease a previous migration run left, having died, is taken over, as
+// every step of the migration can be repeated.
 func (m *Migration) acquireLease(ctx context.Context, s *stores, dataSet dataSetDocument, now time.Time) (bool, error) {
 	selector := bson.M{
 		"_id": dataSet.ObjectID,
 		"$or": bson.A{
 			bson.M{"metadata.lease": bson.M{"$exists": false}},
 			bson.M{"metadata.lease.expiresTime": bson.M{"$lt": now.UTC().Format(time.RFC3339Nano)}},
+			bson.M{"metadata.lease.attempt": leaseAttempt},
 		},
 	}
 	lease := bson.M{
