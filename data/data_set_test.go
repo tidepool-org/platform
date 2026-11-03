@@ -236,7 +236,7 @@ var _ = Describe("DataSet", func() {
 				Entry("metadata and condition valid",
 					func(datum *data.DataSetUpdate) {
 						datum.Metadata = metadataTest.RandomMetadataMapPointer()
-						datum.Condition = data.NewDataSetConditionWithVersionInternal(pointer.FromInt(test.RandomIntFromRange(0, 100)))
+						datum.Condition = data.NewDataSetConditionWithRevision(pointer.FromInt(test.RandomIntFromRange(0, 100)))
 					},
 				),
 				Entry("metadata invalid",
@@ -247,9 +247,9 @@ var _ = Describe("DataSet", func() {
 				),
 				Entry("condition invalid",
 					func(datum *data.DataSetUpdate) {
-						datum.Condition = data.NewDataSetConditionWithVersionInternal(pointer.FromInt(-1))
+						datum.Condition = data.NewDataSetConditionWithRevision(pointer.FromInt(-1))
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/condition/_version"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/condition/revision"),
 				),
 			)
 		})
@@ -260,7 +260,7 @@ var _ = Describe("DataSet", func() {
 			})
 
 			It("returns true with only a condition", func() {
-				Expect((&data.DataSetUpdate{Condition: data.NewDataSetConditionWithVersionInternal(pointer.FromInt(1))}).IsEmpty()).To(BeTrue())
+				Expect((&data.DataSetUpdate{Condition: data.NewDataSetConditionWithRevision(pointer.FromInt(1))}).IsEmpty()).To(BeTrue())
 			})
 
 			It("returns false with metadata", func() {
@@ -322,6 +322,7 @@ var _ = Describe("DataSet", func() {
 				Expect(datum.UserID).To(BeNil())
 				Expect(datum.Version).To(BeNil())
 				Expect(datum.VersionInternal).To(BeZero())
+				Expect(datum.Revision).To(BeZero())
 
 			})
 		})

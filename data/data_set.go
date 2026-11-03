@@ -51,6 +51,7 @@ const (
 	TimeProcessingNone                   = "none"
 	TimeProcessingUTCBootstrapping       = "utc-bootstrapping" // TODO: Rename to utc-bootstrap or alternative
 
+	RevisionMinimum        = 0
 	TimeZoneOffsetMaximum  = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
 	TimeZoneOffsetMinimum  = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
 	VersionInternalMinimum = 0
@@ -235,7 +236,7 @@ func (d *DataSetCreate) Normalize(normalizer structure.Normalizer) {
 }
 
 // DataSetUpdate changes a data set. Metadata replaces the data set's metadata wholesale and Condition requires the
-// data set's version internal to match the one read; neither is parsed from a request nor sent by the HTTP client.
+// data set revision to match the one read; neither is parsed from a request nor sent by the HTTP client.
 type DataSetUpdate struct {
 	Active             *bool                   `json:"-"`
 	DeviceID           *string                 `json:"deviceId,omitempty"`
@@ -284,17 +285,17 @@ func (d *DataSetUpdate) IsEmpty() bool {
 		d.Metadata == nil
 }
 
-// DataSetCondition applies an update only to the data set at the version internal it was read at.
+// DataSetCondition applies an update only to the data set at the revision it was read at.
 type DataSetCondition struct {
-	VersionInternal *int `json:"-"`
+	Revision *int `json:"-"`
 }
 
-func NewDataSetConditionWithVersionInternal(versionInternal *int) *DataSetCondition {
-	return &DataSetCondition{VersionInternal: versionInternal}
+func NewDataSetConditionWithRevision(revision *int) *DataSetCondition {
+	return &DataSetCondition{Revision: revision}
 }
 
 func (d *DataSetCondition) Validate(validator structure.Validator) {
-	validator.Int("_version", d.VersionInternal).GreaterThanOrEqualTo(VersionInternalMinimum)
+	validator.Int("revision", d.Revision).GreaterThanOrEqualTo(RevisionMinimum)
 }
 
 func NewSetID() string {
@@ -360,6 +361,7 @@ type DataSet struct {
 	ModifiedUserID      *string                 `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
 	Payload             *metadata.Metadata      `json:"payload,omitempty" bson:"payload,omitempty"`
 	Provenance          *Provenance             `json:"-" bson:"provenance,omitempty"`
+	Revision            int                     `json:"-" bson:"revision,omitempty"`
 	State               *string                 `json:"-" bson:"_state,omitempty"` // TODO: Should this be returned in JSON? I think so.
 	Time                *time.Time              `json:"time,omitempty" bson:"time,omitempty"`
 	TimeProcessing      *string                 `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
@@ -516,6 +518,7 @@ func (d *DataSet) Validate(validator structure.Validator) {
 	if validator.Origin() <= structure.OriginStore {
 		validator.String("_userId", d.UserID).Exists().Using(user.IDValidator)
 		validator.Int("_version", &d.VersionInternal).Exists().GreaterThanOrEqualTo(VersionInternalMinimum)
+		validator.Int("revision", &d.Revision).GreaterThanOrEqualTo(RevisionMinimum)
 	}
 	validator.Object("metadata", &d.Metadata).SizeLessThanOrEqualTo(metadata.MetadataSizeMaximum)
 

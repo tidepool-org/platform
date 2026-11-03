@@ -29,6 +29,10 @@ func RandomVersionInternal() int {
 	return rand.Intn(10)
 }
 
+func RandomDataSetRevision() int {
+	return test.RandomIntFromRange(data.RevisionMinimum, 100)
+}
+
 func RandomDataSetIDs() []string {
 	return test.RandomStringArrayFromRangeAndGeneratorWithoutDuplicates(1, 3, RandomDataSetID)
 }
@@ -163,7 +167,7 @@ func CloneDataSetUpdate(datum *data.DataSetUpdate) *data.DataSetUpdate {
 	clone.TimeZoneOffset = pointer.CloneInt(datum.TimeZoneOffset)
 	clone.Metadata = metadataTest.CloneMetadataMapPointer(datum.Metadata)
 	if datum.Condition != nil {
-		clone.Condition = data.NewDataSetConditionWithVersionInternal(pointer.CloneInt(datum.Condition.VersionInternal))
+		clone.Condition = data.NewDataSetConditionWithRevision(pointer.CloneInt(datum.Condition.Revision))
 	}
 	return clone
 }
@@ -210,6 +214,7 @@ func RandomDataSet(options ...test.Option) *data.DataSet {
 	datum.UserID = pointer.FromString(userTest.RandomUserID())
 	datum.Version = pointer.FromString(netTest.RandomSemanticVersion())
 	datum.VersionInternal = RandomVersionInternal()
+	datum.Revision = RandomDataSetRevision()
 	return datum
 }
 
@@ -253,5 +258,6 @@ func CloneDataSet(datum *data.DataSet) *data.DataSet {
 	clone.UserID = pointer.CloneString(datum.UserID)
 	clone.Version = pointer.CloneString(datum.Version)
 	clone.VersionInternal = datum.VersionInternal
+	clone.Revision = datum.Revision
 	return clone
 }

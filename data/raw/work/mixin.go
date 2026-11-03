@@ -1,6 +1,7 @@
 package work
 
 import (
+	"context"
 	"io"
 
 	dataRaw "github.com/tidepool-org/platform/data/raw"
@@ -202,8 +203,9 @@ func (m *mixin[M]) CreateDataRaw(userID string, dataSetID string, dataRawCreate 
 		return m.Failed(errors.New("data raw already exists"))
 	}
 
-	// The work's context is passed as is so the create cannot outlive the work's deadline
-	if dataRw, err := m.dataRawClient.Create(m.Context(), userID, dataSetID, dataRawCreate, reader); err != nil {
+	// The create is detached from the work's context: a cancelled create may still land, and a retry would then create
+	// a second raw for the same content
+	if dataRw, err := m.dataRawClient.Create(context.WithoutCancel(m.Context()), userID, dataSetID, dataRawCreate, reader); err != nil {
 		return m.Failing(errors.Wrap(err, "unable to create data raw"))
 	} else if dataRw == nil {
 		return m.Failed(errors.New("data raw is missing"))
@@ -229,16 +231,22 @@ func (m *mixin[M]) UpdateDataRaw(dataRawUpdate *dataRaw.Update) *work.ProcessRes
 		dataRawUpdate.Metadata = &dataRwMetadata
 	}
 
-	// Conditioned on the revision read, so a concurrent writer cannot be overwritten; no match is a conflict. The
-	// work's context is passed as is so the update cannot outlive the work's deadline.
+	// Conditioned on the revision read, so a concurrent writer cannot be overwritten. The work's context is passed as is
+	// so the update cannot outlive the work's deadline.
 	condition := request.NewConditionWithRevision(pointer.From(m.dataRaw.Revision))
 	if dataRw, err := m.dataRawClient.Update(m.Context(), m.dataRaw.ID, condition, dataRawUpdate); err != nil {
 		return m.Failing(errors.Wrap(err, "unable to update data raw"))
-	} else if dataRw == nil {
-		return m.Failing(errors.Wrap(dataRaw.ErrorDataRawUpdateConflict(), "unable to update data raw"))
-	} else {
+	} else if dataRw != nil {
 		return m.SetDataRaw(dataRw)
 	}
+
+	// No match is a conflict with a concurrent writer, unless the data raw is gone, which no retry resolves
+	if dataRw, err := m.dataRawClient.Get(m.Context(), m.dataRaw.ID, nil); err != nil {
+		return m.Failing(errors.Wrap(err, "unable to get data raw"))
+	} else if dataRw == nil {
+		return m.Failed(errors.New("data raw is missing"))
+	}
+	return m.Failing(errors.Wrap(dataRaw.ErrorDataRawUpdateConflict(), "unable to update data raw"))
 }
 
 func (m *mixin[M]) UpdateDataRawMetadata() *work.ProcessResult {

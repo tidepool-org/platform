@@ -110,6 +110,13 @@ var _ = Describe("Mongo", func() {
 								{Key: "metadata.minimumSequenceGroup", Value: bson.D{{Key: "$exists", Value: true}}},
 							}),
 						}),
+						MatchFields(IgnoreExtras, Fields{
+							"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("userId", "dataSetId", "metadata.processedOrdinal")),
+							"Name": Equal("UserIdDataSetIdProcessedOrdinal"),
+							"PartialFilterExpression": Equal(bson.D{
+								{Key: "metadata.processedOrdinal", Value: bson.D{{Key: "$exists", Value: true}}},
+							}),
+						}),
 					))
 				})
 			})
@@ -497,6 +504,39 @@ var _ = Describe("Mongo", func() {
 							Expect(listIDs(filter)).To(ConsistOf(documentID(from100), documentID(from50), documentID(unprocessed), documentID(spanningGroups)))
 						})
 
+						Context("with processed ordinals", func() {
+							BeforeEach(func() {
+								for ordinal, document := range []*dataRawStoreStructuredMongo.Document{from100, from50, spanningGroups} {
+									_, err := mongoCollection.UpdateOne(context.Background(), bson.M{"_id": document.ID}, bson.M{"$set": bson.M{"metadata.processedOrdinal": float64(ordinal + 1)}})
+									Expect(err).ToNot(HaveOccurred())
+								}
+							})
+
+							It("returns only records with a processed ordinal at or after the one given", func() {
+								filter := &dataRaw.Filter{DataSetID: pointer.From(dataSetID), Processed: pointer.From(true), ProcessedOrdinalFrom: pointer.From(int64(2))}
+								Expect(listIDs(filter)).To(ConsistOf(documentID(from50), documentID(spanningGroups)))
+							})
+
+							It("uses the processed ordinal index", func() {
+								explain := bson.M{}
+								command := bson.D{
+									{Key: "explain", Value: bson.D{
+										{Key: "find", Value: mongoCollection.Name()},
+										{Key: "filter", Value: bson.M{
+											"userId":                    userID,
+											"dataSetId":                 dataSetID,
+											"processedTime":             bson.M{"$exists": true},
+											"metadata.processedOrdinal": bson.M{"$gte": int64(2)},
+										}},
+									}},
+								}
+								Expect(mongoCollection.Database().RunCommand(ctx, command).Decode(&explain)).To(Succeed())
+								plan, err := bson.MarshalExtJSON(explain["queryPlanner"], false, false)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(string(plan)).To(ContainSubstring("UserIdDataSetIdProcessedOrdinal"))
+							})
+						})
+
 						It("returns records of any processed state when processed is not specified", func() {
 							filter := &dataRaw.Filter{
 								DataSetID:           pointer.From(dataSetID),
@@ -704,12 +744,15 @@ var _ = Describe("Mongo", func() {
 						Expect(storedDocument.Compressed).To(BeFalse())
 					})
 
-					It("returns an error when the context is cancelled", func() {
+					It("creates the raw even when the context is cancelled", func() {
 						cancelledCtx, cancel := context.WithCancel(ctx)
 						cancel()
 						result, err := store.Create(cancelledCtx, userID, dataSetID, create, bytes.NewReader(test.RandomBytes()))
-						Expect(err).To(MatchError(ContainSubstring("unable to create raw")))
-						Expect(result).To(BeNil())
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+						objectID, _, err := dataRawStoreStructuredMongo.ObjectIDAndDateFromID(result.ID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(mongoCollection.CountDocuments(context.Background(), bson.M{"_id": objectID})).To(Equal(int64(1)))
 					})
 
 					It("stores compressed data when data is large enough to benefit from compression", func() {
@@ -1068,8 +1111,9 @@ var _ = Describe("Mongo", func() {
 							BeforeEach(func() {
 								condition = nil
 								processedTime := time.Now().UTC().Truncate(time.Millisecond)
-								_, err := mongoCollection.UpdateOne(context.Background(), bson.M{"_id": document.ID}, bson.M{"$set": bson.M{"processedTime": processedTime, "archivableTime": processedTime}})
+								_, err := mongoCollection.UpdateOne(context.Background(), bson.M{"_id": document.ID}, bson.M{"$set": bson.M{"processedTime": processedTime, "archivableTime": processedTime}, "$unset": bson.M{"archivedTime": true}})
 								Expect(err).ToNot(HaveOccurred())
+								document.ArchivedTime = nil
 							})
 
 							It("clears the processed and archivable times and keeps the rest", func() {
@@ -1093,6 +1137,20 @@ var _ = Describe("Mongo", func() {
 								Expect(result).ToNot(BeNil())
 								Expect(result.ProcessedTime).To(BeNil())
 								Expect(result.Metadata).To(Equal(metadata))
+							})
+
+							It("returns nil and changes nothing when the raw is archived", func() {
+								archivedTime := time.Now().UTC().Truncate(time.Millisecond)
+								_, err := mongoCollection.UpdateOne(context.Background(), bson.M{"_id": document.ID}, bson.M{"$set": bson.M{"archivedTime": archivedTime}})
+								Expect(err).ToNot(HaveOccurred())
+								update = &dataRaw.Update{ClearProcessed: true}
+								result, err := store.Update(ctx, id, nil, update)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(result).To(BeNil())
+								stored, err := store.Get(ctx, id, nil)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(stored.ProcessedTime).ToNot(BeNil())
+								Expect(stored.Revision).To(Equal(document.Revision))
 							})
 						})
 					})
