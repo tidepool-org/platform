@@ -314,6 +314,44 @@ func (c *MockClientListEHREnabledClinicsCall) DoAndReturn(f func(context.Context
 	return c
 }
 
+// RecordInvitationResent mocks base method.
+func (m *MockClient) RecordInvitationResent(ctx context.Context, clinicID, patientID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RecordInvitationResent", ctx, clinicID, patientID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RecordInvitationResent indicates an expected call of RecordInvitationResent.
+func (mr *MockClientMockRecorder) RecordInvitationResent(ctx, clinicID, patientID any) *MockClientRecordInvitationResentCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecordInvitationResent", reflect.TypeOf((*MockClient)(nil).RecordInvitationResent), ctx, clinicID, patientID)
+	return &MockClientRecordInvitationResentCall{Call: call}
+}
+
+// MockClientRecordInvitationResentCall wrap *gomock.Call
+type MockClientRecordInvitationResentCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockClientRecordInvitationResentCall) Return(arg0 error) *MockClientRecordInvitationResentCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockClientRecordInvitationResentCall) Do(f func(context.Context, string, string) error) *MockClientRecordInvitationResentCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockClientRecordInvitationResentCall) DoAndReturn(f func(context.Context, string, string) error) *MockClientRecordInvitationResentCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // SharePatientAccount mocks base method.
 func (m *MockClient) SharePatientAccount(ctx context.Context, clinicID, patientID string) (*client.PatientV1, error) {
 	m.ctrl.T.Helper()
@@ -425,6 +463,44 @@ func (c *MockClientSyncEHRDataForPatientCall) Do(f func(context.Context, string)
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockClientSyncEHRDataForPatientCall) DoAndReturn(f func(context.Context, string) error) *MockClientSyncEHRDataForPatientCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpdateConnectionIssues mocks base method.
+func (m *MockClient) UpdateConnectionIssues(ctx context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateConnectionIssues", ctx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateConnectionIssues indicates an expected call of UpdateConnectionIssues.
+func (mr *MockClientMockRecorder) UpdateConnectionIssues(ctx any) *MockClientUpdateConnectionIssuesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateConnectionIssues", reflect.TypeOf((*MockClient)(nil).UpdateConnectionIssues), ctx)
+	return &MockClientUpdateConnectionIssuesCall{Call: call}
+}
+
+// MockClientUpdateConnectionIssuesCall wrap *gomock.Call
+type MockClientUpdateConnectionIssuesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockClientUpdateConnectionIssuesCall) Return(arg0 error) *MockClientUpdateConnectionIssuesCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockClientUpdateConnectionIssuesCall) Do(f func(context.Context) error) *MockClientUpdateConnectionIssuesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockClientUpdateConnectionIssuesCall) DoAndReturn(f func(context.Context) error) *MockClientUpdateConnectionIssuesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
