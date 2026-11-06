@@ -19,14 +19,14 @@ const (
 
 	ReleaseIdentifierLength      = 7
 	SoftwareVersionLengthMaximum = 20
-	FrontendVersionLengthMaximum = SoftwareVersionLengthMaximum - len("-") - ReleaseIdentifierLength
+	ClientVersionLengthMaximum   = SoftwareVersionLengthMaximum - len("-") - ReleaseIdentifierLength
 )
 
-// GS1 parentheses delimit application identifiers, so the frontend version is limited to version characters
-var FrontendVersionExpression = regexp.MustCompile(`^[0-9A-Za-z.+-]+$`)
+// GS1 parentheses delimit application identifiers, so the client version is limited to version characters
+var ClientVersionExpression = regexp.MustCompile(`^[0-9A-Za-z.+-]+$`)
 
 type Request struct {
-	FrontendVersion *string `json:"frontendVersion,omitempty"`
+	ClientVersion *string `json:"clientVersion,omitempty"`
 }
 
 func NewRequest() *Request {
@@ -34,11 +34,11 @@ func NewRequest() *Request {
 }
 
 func (r *Request) Parse(parser structure.ObjectParser) {
-	r.FrontendVersion = parser.String("frontendVersion")
+	r.ClientVersion = parser.String("clientVersion")
 }
 
 func (r *Request) Validate(validator structure.Validator) {
-	validator.String("frontendVersion", r.FrontendVersion).Exists().LengthInRange(1, FrontendVersionLengthMaximum).Matches(FrontendVersionExpression)
+	validator.String("clientVersion", r.ClientVersion).Exists().LengthInRange(1, ClientVersionLengthMaximum).Matches(ClientVersionExpression)
 }
 
 type UDI struct {
@@ -53,8 +53,8 @@ type UDI struct {
 }
 
 // New formats the UDI with GS1 application identifiers (01) device identifier, (11) release date as YYMMDD
-// in UTC, and (8012) software version as the frontend version and the release identifier
-func New(release *cluster.Release, frontendVersion string) (*UDI, error) {
+// in UTC, and (8012) software version as the client version and the release identifier
+func New(release *cluster.Release, clientVersion string) (*UDI, error) {
 	if release == nil {
 		return nil, errors.New("release is missing")
 	}
@@ -64,12 +64,12 @@ func New(release *cluster.Release, frontendVersion string) (*UDI, error) {
 	if len(release.Revision) < ReleaseIdentifierLength {
 		return nil, errors.Newf("release revision %q is invalid", release.Revision)
 	}
-	if frontendVersion == "" {
-		return nil, errors.New("frontend version is missing")
+	if clientVersion == "" {
+		return nil, errors.New("client version is missing")
 	}
 
 	releaseIdentifier := release.Revision[:ReleaseIdentifierLength]
-	softwareVersion := frontendVersion + "-" + releaseIdentifier
+	softwareVersion := clientVersion + "-" + releaseIdentifier
 	if len(softwareVersion) > SoftwareVersionLengthMaximum {
 		return nil, errors.Newf("software version %q is longer than %d characters", softwareVersion, SoftwareVersionLengthMaximum)
 	}

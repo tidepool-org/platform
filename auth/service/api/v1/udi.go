@@ -38,7 +38,7 @@ func (r *Router) CreateUDI(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	result, err := udi.New(release, *udiRequest.FrontendVersion)
+	result, err := udi.New(release, *udiRequest.ClientVersion)
 	if err != nil {
 		responder.Error(http.StatusServiceUnavailable, ErrorUDIUnavailable(err))
 		return
