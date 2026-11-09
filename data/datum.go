@@ -1,11 +1,13 @@
 package data
 
 import (
+	"context"
 	"time"
 
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/times"
 )
 
 type Datum interface {
@@ -95,6 +97,54 @@ func (d Data) Filter(predicate func(Datum) bool) Data {
 		}
 	}
 	return filtered
+}
+
+const (
+	DatumSortFieldTime = "time"
+
+	DatumSortDirectionAscending  = "ascending"
+	DatumSortDirectionDescending = "descending"
+)
+
+func DatumSortFields() []string {
+	return []string{DatumSortFieldTime}
+}
+
+func DatumSortDirections() []string {
+	return []string{DatumSortDirectionAscending, DatumSortDirectionDescending}
+}
+
+// DatumSort orders data by the field in the direction.
+type DatumSort struct {
+	Field     *string
+	Direction *string
+}
+
+func (d *DatumSort) Validate(validator structure.Validator) {
+	validator.String("field", d.Field).Exists().OneOf(DatumSortFields()...)
+	validator.String("direction", d.Direction).Exists().OneOf(DatumSortDirections()...)
+}
+
+// DatumFilter selects data of the type, of the subtype if any, and with a time within the time range if any, from and
+// to inclusive.
+type DatumFilter struct {
+	Type    *string
+	SubType *string
+	Time    *times.TimeRange
+}
+
+func (d *DatumFilter) Validate(validator structure.Validator) {
+	validator.String("type", d.Type).Exists().NotEmpty()
+	validator.String("subType", d.SubType).NotEmpty()
+	if d.Time != nil {
+		d.Time.Validate(validator.WithReference("time"))
+	}
+}
+
+type DatumAccessor interface {
+	// GetFirstDataSetDatum returns the first active datum of the data set the filter selects, in the order of the sort,
+	// or nil if there is none.
+	GetFirstDataSetDatum(ctx context.Context, dataSet *DataSet, filter *DatumFilter, sort *DatumSort) (Datum, error)
 }
 
 // Provenance of a document.

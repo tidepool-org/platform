@@ -2,7 +2,7 @@ package mongo
 
 import (
 	"context"
-	"errors"
+	stdErrors "errors"
 	"fmt"
 	"time"
 
@@ -19,7 +19,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/dosingdecision"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
-	platerrors "github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -434,46 +434,69 @@ func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *data.
 	return nil
 }
 
-func (d *DatumRepository) GetLatestDataSetDatum(ctx context.Context, dataSet *data.DataSet, typ string, subType string) (data.Datum, error) {
+func (d *DatumRepository) GetFirstDataSetDatum(ctx context.Context, dataSet *data.DataSet, filter *data.DatumFilter, sort *data.DatumSort) (data.Datum, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
 	if err := validateDataSet(dataSet); err != nil {
 		return nil, err
 	}
-	if typ == "" {
-		return nil, errors.New("type is empty")
+	if filter == nil {
+		return nil, errors.New("filter is missing")
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
+		return nil, errors.Wrap(err, "filter is invalid")
+	}
+	if sort == nil {
+		return nil, errors.New("sort is missing")
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(sort); err != nil {
+		return nil, errors.Wrap(err, "sort is invalid")
+	}
+	direction := 1
+	if *sort.Direction == data.DatumSortDirectionDescending {
+		direction = -1
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"dataSetId": *dataSet.UploadID, "type": typ, "subType": subType})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"dataSetId": *dataSet.UploadID, "filter": filter, "sort": sort})
 
 	// The user, active and type select the UserIdTypeWeighted_v2 index, which is sorted by time
 	selector := bson.M{
 		"_userId":     dataSet.UserID,
 		"_active":     true,
-		"type":        typ,
+		"type":        *filter.Type,
 		"uploadId":    dataSet.UploadID,
 		"deletedTime": bson.M{"$exists": false},
 	}
-	if subType != "" {
-		selector["subType"] = subType
+	if filter.SubType != nil {
+		selector["subType"] = *filter.SubType
 	}
-	raw, err := d.FindOne(ctx, selector, options.FindOne().SetSort(bson.D{{Key: "time", Value: -1}})).Raw()
+	if filter.Time != nil {
+		timeSelector := bson.M{}
+		if filter.Time.From != nil {
+			timeSelector["$gte"] = *filter.Time.From
+		}
+		if filter.Time.To != nil {
+			timeSelector["$lte"] = *filter.Time.To
+		}
+		if len(timeSelector) > 0 {
+			selector["time"] = timeSelector
+		}
+	}
+	raw, err := d.FindOne(ctx, selector, options.FindOne().SetSort(bson.D{{Key: *sort.Field, Value: direction}})).Raw()
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
-		logger.WithError(err).Error("Unable to get latest data set datum")
-		return nil, fmt.Errorf("unable to get latest data set datum: %w", err)
+		logger.WithError(err).Error("Unable to get first data set datum")
+		return nil, fmt.Errorf("unable to get first data set datum: %w", err)
 	}
 
 	datum, err := decodeDatum(ctx, dataSet, raw)
 	if err != nil {
-		logger.WithError(err).Error("Unable to decode latest data set datum")
-		return nil, fmt.Errorf("unable to decode latest data set datum: %w", err)
+		logger.WithError(err).Error("Unable to decode first data set datum")
+		return nil, fmt.Errorf("unable to decode first data set datum: %w", err)
 	}
 
-	logger.WithField("duration", time.Since(now)/time.Microsecond).Debug("GetLatestDataSetDatum")
+	logger.WithField("duration", time.Since(now)/time.Microsecond).Debug("GetFirstDataSetDatum")
 	return datum, nil
 }
 
@@ -758,7 +781,7 @@ func validateAndTranslateDatumSelector(ctx context.Context, selectors *data.Sele
 	if selectors == nil {
 		return nil, errors.New("selectors is missing")
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(selectors); err != nil {
-		return nil, errors.Join(ErrSelectorsInvalid, err)
+		return nil, stdErrors.Join(ErrSelectorsInvalid, err)
 	} else if len(*selectors) != 1 {
 		return nil, errors.New("selectors is invalid, exactly one selector allowed")
 	}
@@ -781,7 +804,7 @@ func validateAndTranslateSelectors(ctx context.Context, selectors *data.Selector
 	if selectors == nil {
 		return bson.M{}, false, nil
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(selectors); err != nil {
-		return nil, false, errors.Join(ErrSelectorsInvalid, err)
+		return nil, false, stdErrors.Join(ErrSelectorsInvalid, err)
 	}
 
 	var selectorIDs []string
@@ -906,7 +929,7 @@ func (d *DatumRepository) GetAlertableData(ctx context.Context,
 	}
 	dosingDecisions := []*dosingdecision.DosingDecision{}
 	if err := cursor.All(ctx, &dosingDecisions); err != nil {
-		return nil, platerrors.Wrap(err, "Unable to load alertable dosing documents")
+		return nil, errors.Wrap(err, "Unable to load alertable dosing documents")
 	}
 	cursor, err = d.getAlertableData(ctx, params, continuous.Type)
 	if err != nil {
@@ -914,7 +937,7 @@ func (d *DatumRepository) GetAlertableData(ctx context.Context,
 	}
 	glucoseData := []*glucose.Glucose{}
 	if err := cursor.All(ctx, &glucoseData); err != nil {
-		return nil, platerrors.Wrap(err, "Unable to load alertable glucose documents")
+		return nil, errors.Wrap(err, "Unable to load alertable glucose documents")
 	}
 	response := &store.AlertableResponse{
 		DosingDecisions: dosingDecisions,
@@ -938,7 +961,7 @@ func (d *DatumRepository) getAlertableData(ctx context.Context,
 	cursor, err := d.Find(ctx, selector, findOptions)
 	if err != nil {
 		format := "Unable to find alertable %s data in dataset %s"
-		return nil, platerrors.Wrapf(err, format, typ, params.UploadID)
+		return nil, errors.Wrapf(err, format, typ, params.UploadID)
 	}
 	return cursor, nil
 }

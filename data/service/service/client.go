@@ -70,9 +70,9 @@ func (c *Client) GetDataSet(ctx context.Context, id string) (*data.DataSet, erro
 	return repository.GetDataSet(ctx, id)
 }
 
-func (c *Client) GetLatestDataSetDatum(ctx context.Context, dataSet *data.DataSet, typ string, subType string) (data.Datum, error) {
+func (c *Client) GetFirstDataSetDatum(ctx context.Context, dataSet *data.DataSet, filter *data.DatumFilter, sort *data.DatumSort) (data.Datum, error) {
 	repository := c.dataStore.NewDataRepository()
-	return repository.GetLatestDataSetDatum(ctx, dataSet, typ, subType)
+	return repository.GetFirstDataSetDatum(ctx, dataSet, filter, sort)
 }
 
 func (c *Client) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {

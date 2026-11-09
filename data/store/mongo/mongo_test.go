@@ -40,6 +40,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	"github.com/tidepool-org/platform/test"
+	"github.com/tidepool-org/platform/times"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
@@ -980,93 +981,187 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						dataSetData = NewDataSetData(deviceID)
 					})
 
-					Context("GetLatestDataSetDatum", func() {
+					activeDatum := func(datum data.Datum, base *types.Base, tm time.Time) data.Datum {
+						base.Active = true
+						base.DeletedTime = nil
+						base.DeletedUserID = nil
+						base.Time = pointer.FromTime(tm)
+						return datum
+					}
+					newPump := func(tm time.Time) *dataTypesSettingsPump.Pump {
+						datum := dataTypesSettingsPumpTest.NewPump(pointer.FromString("mg/dL"))
+						activeDatum(datum, &datum.Base, tm)
+						return datum
+					}
+					newStatus := func(tm time.Time) *dataTypesDeviceStatus.Status {
+						datum := dataTypesDeviceStatusTest.NewStatus()
+						activeDatum(datum, &datum.Base, tm)
+						return datum
+					}
+
+					Context("GetFirstDataSetDatum", func() {
+						var tm time.Time
+
+						BeforeEach(func() {
+							tm = time.Now().UTC().Truncate(time.Millisecond).Add(-time.Hour)
+						})
+
+						pumpSettingsFilter := func() *data.DatumFilter {
+							return &data.DatumFilter{Type: pointer.FromString("pumpSettings")}
+						}
+
+						timeSort := func(direction string) *data.DatumSort {
+							return &data.DatumSort{Field: pointer.FromString(data.DatumSortFieldTime), Direction: pointer.FromString(direction)}
+						}
+
 						It("returns an error when the context is missing", func() {
-							datum, err := repository.GetLatestDataSetDatum(nil, dataSet, "pumpSettings", "")
+							datum, err := repository.GetFirstDataSetDatum(nil, dataSet, pumpSettingsFilter(), timeSort(data.DatumSortDirectionDescending))
 							Expect(err).To(MatchError("context is missing"))
 							Expect(datum).To(BeNil())
 						})
 
 						It("returns an error when the data set is missing", func() {
-							datum, err := repository.GetLatestDataSetDatum(ctx, nil, "pumpSettings", "")
+							datum, err := repository.GetFirstDataSetDatum(ctx, nil, pumpSettingsFilter(), timeSort(data.DatumSortDirectionDescending))
 							Expect(err).To(MatchError("data set is missing"))
 							Expect(datum).To(BeNil())
 						})
 
-						It("returns an error when the type is empty", func() {
-							datum, err := repository.GetLatestDataSetDatum(ctx, dataSet, "", "")
-							Expect(err).To(MatchError("type is empty"))
+						It("returns an error when the filter is missing", func() {
+							datum, err := repository.GetFirstDataSetDatum(ctx, dataSet, nil, timeSort(data.DatumSortDirectionDescending))
+							Expect(err).To(MatchError("filter is missing"))
+							Expect(datum).To(BeNil())
+						})
+
+						It("returns an error when the filter has no type", func() {
+							datum, err := repository.GetFirstDataSetDatum(ctx, dataSet, &data.DatumFilter{}, timeSort(data.DatumSortDirectionDescending))
+							Expect(err).To(MatchError(HavePrefix("filter is invalid")))
+							Expect(datum).To(BeNil())
+						})
+
+						It("returns an error when the time range of the filter is invalid", func() {
+							filter := pumpSettingsFilter()
+							filter.Time = &times.TimeRange{From: pointer.FromTime(tm), To: pointer.FromTime(tm.Add(-time.Minute))}
+							datum, err := repository.GetFirstDataSetDatum(ctx, dataSet, filter, timeSort(data.DatumSortDirectionDescending))
+							Expect(err).To(MatchError(HavePrefix("filter is invalid")))
+							Expect(datum).To(BeNil())
+						})
+
+						It("returns an error when the sort is missing", func() {
+							datum, err := repository.GetFirstDataSetDatum(ctx, dataSet, pumpSettingsFilter(), nil)
+							Expect(err).To(MatchError("sort is missing"))
+							Expect(datum).To(BeNil())
+						})
+
+						It("returns an error when the sort field is invalid", func() {
+							sort := timeSort(data.DatumSortDirectionDescending)
+							sort.Field = pointer.FromString("modifiedTime")
+							datum, err := repository.GetFirstDataSetDatum(ctx, dataSet, pumpSettingsFilter(), sort)
+							Expect(err).To(MatchError(HavePrefix("sort is invalid")))
+							Expect(datum).To(BeNil())
+						})
+
+						It("returns an error when the sort direction is invalid", func() {
+							datum, err := repository.GetFirstDataSetDatum(ctx, dataSet, pumpSettingsFilter(), timeSort("sideways"))
+							Expect(err).To(MatchError(HavePrefix("sort is invalid")))
 							Expect(datum).To(BeNil())
 						})
 
 						Context("with database access", func() {
-							var latestTime time.Time
-							var latestPump *dataTypesSettingsPump.Pump
-							var latestStatus *dataTypesDeviceStatus.Status
+							var earlierPump *dataTypesSettingsPump.Pump
+							var laterPump *dataTypesSettingsPump.Pump
+							var status *dataTypesDeviceStatus.Status
 
-							activeDatum := func(datum data.Datum, base *types.Base, tm time.Time) data.Datum {
-								base.Active = true
-								base.DeletedTime = nil
-								base.DeletedUserID = nil
-								base.Time = pointer.FromTime(tm)
-								return datum
-							}
-							newPump := func(tm time.Time) *dataTypesSettingsPump.Pump {
-								datum := dataTypesSettingsPumpTest.NewPump(pointer.FromString("mg/dL"))
-								activeDatum(datum, &datum.Base, tm)
-								return datum
-							}
-							newStatus := func(tm time.Time) *dataTypesDeviceStatus.Status {
-								datum := dataTypesDeviceStatusTest.NewStatus()
-								activeDatum(datum, &datum.Base, tm)
-								return datum
-							}
-
+							// Active pump settings an hour before the time and at it, a status an hour before it, and
+							// around them inactive and deleted pump settings and those of another data set
 							BeforeEach(func() {
 								preparePersistedDataSets()
-								latestTime = time.Now().UTC().Truncate(time.Millisecond).Add(-time.Hour)
-								latestPump = newPump(latestTime)
-								latestStatus = newStatus(latestTime)
+								earlierPump = newPump(tm.Add(-time.Hour))
+								laterPump = newPump(tm)
+								status = newStatus(tm.Add(-time.Hour))
 
-								inactivePump := newPump(latestTime.Add(time.Minute))
-								inactivePump.Active = false
-								deletedPump := newPump(latestTime.Add(2 * time.Minute))
-								deletedPump.DeletedTime = pointer.FromTime(latestTime)
-								Expect(repository.CreateDataSetData(ctx, dataSet, []data.Datum{
-									newPump(latestTime.Add(-time.Hour)), latestPump, inactivePump, deletedPump,
-									newStatus(latestTime.Add(-time.Hour)), latestStatus,
-								})).To(Succeed())
+								inactivePumps := []*dataTypesSettingsPump.Pump{newPump(tm.Add(-2 * time.Hour)), newPump(tm.Add(time.Minute))}
+								deletedPumps := []*dataTypesSettingsPump.Pump{newPump(tm.Add(-90 * time.Minute)), newPump(tm.Add(2 * time.Minute))}
+								dataSetData := []data.Datum{earlierPump, laterPump, status}
+								for _, pump := range inactivePumps {
+									pump.Active = false
+									dataSetData = append(dataSetData, pump)
+								}
+								for _, pump := range deletedPumps {
+									pump.DeletedTime = pointer.FromTime(tm)
+									dataSetData = append(dataSetData, pump)
+								}
+								Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
 								Expect(repository.CreateDataSetData(ctx, dataSetExistingOne, []data.Datum{
-									newPump(latestTime.Add(time.Hour)), newStatus(latestTime.Add(time.Hour)),
+									newPump(tm.Add(-3 * time.Hour)), newPump(tm.Add(30 * time.Minute)),
 								})).To(Succeed())
 							})
 
-							It("returns the latest active datum of the type in the data set", func() {
-								datum, err := repository.GetLatestDataSetDatum(ctx, dataSet, "pumpSettings", "")
+							expectPump := func(datum data.Datum, err error, expected *dataTypesSettingsPump.Pump) {
 								Expect(err).ToNot(HaveOccurred())
 								Expect(datum).To(BeAssignableToTypeOf(&dataTypesSettingsPump.Pump{}))
 								pump := datum.(*dataTypesSettingsPump.Pump)
-								Expect(pump.ID).To(Equal(latestPump.ID))
-								Expect(pump.Time).To(PointTo(BeTemporally("==", latestTime)))
-								Expect(pump.ActiveScheduleName).To(Equal(latestPump.ActiveScheduleName))
+								Expect(pump.ID).To(Equal(expected.ID))
+								Expect(pump.Time).To(PointTo(BeTemporally("==", *expected.Time)))
+								Expect(pump.ActiveScheduleName).To(Equal(expected.ActiveScheduleName))
 								Expect(pump.UploadID).To(Equal(dataSet.UploadID))
+							}
+
+							firstPump := func(timeRange *times.TimeRange, sort *data.DatumSort) (data.Datum, error) {
+								filter := pumpSettingsFilter()
+								filter.Time = timeRange
+								return repository.GetFirstDataSetDatum(ctx, dataSet, filter, sort)
+							}
+
+							It("returns the active datum of the type in the data set with the latest time when sorted by descending time", func() {
+								datum, err := firstPump(nil, timeSort(data.DatumSortDirectionDescending))
+								expectPump(datum, err, laterPump)
 							})
 
-							It("returns the latest datum of the subtype", func() {
-								datum, err := repository.GetLatestDataSetDatum(ctx, dataSet, "deviceEvent", "status")
+							It("returns the active datum of the type in the data set with the earliest time when sorted by ascending time", func() {
+								datum, err := firstPump(nil, timeSort(data.DatumSortDirectionAscending))
+								expectPump(datum, err, earlierPump)
+							})
+
+							It("returns the datum of the subtype", func() {
+								filter := &data.DatumFilter{Type: pointer.FromString("deviceEvent"), SubType: pointer.FromString("status")}
+								datum, err := repository.GetFirstDataSetDatum(ctx, dataSet, filter, timeSort(data.DatumSortDirectionDescending))
 								Expect(err).ToNot(HaveOccurred())
 								Expect(datum).To(BeAssignableToTypeOf(&dataTypesDeviceStatus.Status{}))
-								status := datum.(*dataTypesDeviceStatus.Status)
-								Expect(status.ID).To(Equal(latestStatus.ID))
-								Expect(status.Name).To(Equal(latestStatus.Name))
+								Expect(datum.(*dataTypesDeviceStatus.Status).ID).To(Equal(status.ID))
+								Expect(datum.(*dataTypesDeviceStatus.Status).Name).To(Equal(status.Name))
+							})
+
+							It("returns the latest datum at or before the end of the time range", func() {
+								datum, err := firstPump(&times.TimeRange{To: pointer.FromTime(tm.Add(time.Hour))}, timeSort(data.DatumSortDirectionDescending))
+								expectPump(datum, err, laterPump)
+								datum, err = firstPump(&times.TimeRange{To: pointer.FromTime(tm)}, timeSort(data.DatumSortDirectionDescending))
+								expectPump(datum, err, laterPump)
+								datum, err = firstPump(&times.TimeRange{To: pointer.FromTime(tm.Add(-time.Millisecond))}, timeSort(data.DatumSortDirectionDescending))
+								expectPump(datum, err, earlierPump)
+							})
+
+							It("returns the earliest datum at or after the start of the time range", func() {
+								datum, err := firstPump(&times.TimeRange{From: pointer.FromTime(tm.Add(-time.Hour))}, timeSort(data.DatumSortDirectionAscending))
+								expectPump(datum, err, earlierPump)
+								datum, err = firstPump(&times.TimeRange{From: pointer.FromTime(tm.Add(-time.Hour + time.Millisecond))}, timeSort(data.DatumSortDirectionAscending))
+								expectPump(datum, err, laterPump)
+							})
+
+							It("returns nil when no datum is within the time range", func() {
+								datum, err := firstPump(&times.TimeRange{To: pointer.FromTime(tm.Add(-2 * time.Hour))}, timeSort(data.DatumSortDirectionDescending))
+								Expect(err).ToNot(HaveOccurred())
+								Expect(datum).To(BeNil())
+								datum, err = firstPump(&times.TimeRange{From: pointer.FromTime(tm.Add(time.Millisecond))}, timeSort(data.DatumSortDirectionAscending))
+								Expect(err).ToNot(HaveOccurred())
+								Expect(datum).To(BeNil())
 							})
 
 							It("returns a datum with a field declared as an interface, such as a suppressed basal", func() {
 								automated := dataTypesBasalAutomatedTest.RandomAutomated()
-								activeDatum(automated, &automated.Base, latestTime)
+								activeDatum(automated, &automated.Base, tm)
 								Expect(repository.CreateDataSetData(ctx, dataSet, []data.Datum{automated})).To(Succeed())
 
-								datum, err := repository.GetLatestDataSetDatum(ctx, dataSet, "basal", "")
+								datum, err := repository.GetFirstDataSetDatum(ctx, dataSet, &data.DatumFilter{Type: pointer.FromString("basal")}, timeSort(data.DatumSortDirectionDescending))
 								Expect(err).ToNot(HaveOccurred())
 								Expect(datum).To(BeAssignableToTypeOf(&dataTypesBasalAutomated.Automated{}))
 								basal := datum.(*dataTypesBasalAutomated.Automated)
@@ -1077,10 +1172,10 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 							})
 
 							It("returns nil when there is no datum of the type or subtype", func() {
-								datum, err := repository.GetLatestDataSetDatum(ctx, dataSet, "basal", "")
+								datum, err := repository.GetFirstDataSetDatum(ctx, dataSet, &data.DatumFilter{Type: pointer.FromString("basal")}, timeSort(data.DatumSortDirectionDescending))
 								Expect(err).ToNot(HaveOccurred())
 								Expect(datum).To(BeNil())
-								datum, err = repository.GetLatestDataSetDatum(ctx, dataSet, "deviceEvent", "pumpSettingsOverride")
+								datum, err = repository.GetFirstDataSetDatum(ctx, dataSet, &data.DatumFilter{Type: pointer.FromString("deviceEvent"), SubType: pointer.FromString("pumpSettingsOverride")}, timeSort(data.DatumSortDirectionDescending))
 								Expect(err).ToNot(HaveOccurred())
 								Expect(datum).To(BeNil())
 							})

@@ -166,14 +166,14 @@ type UpdateDataSetDatumInput struct {
 	Update    bson.M
 }
 
-type GetLatestDataSetDatumInput struct {
+type GetFirstDataSetDatumInput struct {
 	Context context.Context
 	DataSet *data.DataSet
-	Type    string
-	SubType string
+	Filter  *data.DatumFilter
+	Sort    *data.DatumSort
 }
 
-type GetLatestDataSetDatumOutput struct {
+type GetFirstDataSetDatumOutput struct {
 	Datum data.Datum
 	Error error
 }
@@ -285,9 +285,9 @@ type DataRepository struct {
 	GetDataRangeInputs      []GetDataRangeInput
 	GetDataRangeOutputs     []GetDataRangeOutput
 
-	GetLatestDataSetDatumInvocations int
-	GetLatestDataSetDatumInputs      []GetLatestDataSetDatumInput
-	GetLatestDataSetDatumOutputs     []GetLatestDataSetDatumOutput
+	GetFirstDataSetDatumInvocations int
+	GetFirstDataSetDatumInputs      []GetFirstDataSetDatumInput
+	GetFirstDataSetDatumOutputs     []GetFirstDataSetDatumOutput
 
 	GetDataSetDocumentsInvocations int
 	GetDataSetDocumentsInputs      []GetDataSetDocumentsInput
@@ -540,15 +540,15 @@ func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataS
 	return output.DataSet, output.Error
 }
 
-func (d *DataRepository) GetLatestDataSetDatum(ctx context.Context, dataSet *data.DataSet, typ string, subType string) (data.Datum, error) {
-	d.GetLatestDataSetDatumInvocations++
+func (d *DataRepository) GetFirstDataSetDatum(ctx context.Context, dataSet *data.DataSet, filter *data.DatumFilter, sort *data.DatumSort) (data.Datum, error) {
+	d.GetFirstDataSetDatumInvocations++
 
-	d.GetLatestDataSetDatumInputs = append(d.GetLatestDataSetDatumInputs, GetLatestDataSetDatumInput{Context: ctx, DataSet: dataSet, Type: typ, SubType: subType})
+	d.GetFirstDataSetDatumInputs = append(d.GetFirstDataSetDatumInputs, GetFirstDataSetDatumInput{Context: ctx, DataSet: dataSet, Filter: filter, Sort: sort})
 
-	gomega.Expect(d.GetLatestDataSetDatumOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(d.GetFirstDataSetDatumOutputs).ToNot(gomega.BeEmpty())
 
-	output := d.GetLatestDataSetDatumOutputs[0]
-	d.GetLatestDataSetDatumOutputs = d.GetLatestDataSetDatumOutputs[1:]
+	output := d.GetFirstDataSetDatumOutputs[0]
+	d.GetFirstDataSetDatumOutputs = d.GetFirstDataSetDatumOutputs[1:]
 	return output.Datum, output.Error
 }
 
@@ -643,7 +643,7 @@ func (d *DataRepository) Expectations() {
 	gomega.Expect(d.DestroyDataForUserByIDOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.ListUserDataSetsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.GetLatestDataSetDatumOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetFirstDataSetDatumOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetDocumentsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.UpdateDataSetDatumOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetLastUpdatedForUserOutputs).To(gomega.BeEmpty())

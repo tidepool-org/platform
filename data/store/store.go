@@ -61,9 +61,9 @@ type DatumRepository interface {
 	DestroyDeletedDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
 	DestroyDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
 
-	// GetLatestDataSetDatum returns the active datum of the data set with the latest time of the type, and of the
-	// subtype if not empty, or nil if there is none.
-	GetLatestDataSetDatum(ctx context.Context, dataSet *data.DataSet, typ string, subType string) (data.Datum, error)
+	// GetFirstDataSetDatum returns the first active datum of the data set the filter selects, in the order of the sort,
+	// or nil if there is none.
+	GetFirstDataSetDatum(ctx context.Context, dataSet *data.DataSet, filter *data.DatumFilter, sort *data.DatumSort) (data.Datum, error)
 
 	// GetDataSetDocuments returns the stored documents of the data set the selectors match, not deleted, as decoded
 	// maps. A data raw selector matches everything the raw data record created or changed.

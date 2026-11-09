@@ -14,6 +14,7 @@ import (
 	structureTest "github.com/tidepool-org/platform/structure/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
+	"github.com/tidepool-org/platform/times"
 )
 
 var _ = Describe("Data", func() {
@@ -108,6 +109,56 @@ var _ = Describe("Data", func() {
 				Entry("succeeds", func(dataRaw *data.SelectorDataRaw) {}),
 				Entry("id missing", func(dataRaw *data.SelectorDataRaw) { dataRaw.ID = nil }, errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/id")),
 				Entry("id empty", func(dataRaw *data.SelectorDataRaw) { dataRaw.ID = pointer.FromString("") }, errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id")),
+			)
+		})
+	})
+
+	Context("DatumSortFields", func() {
+		It("returns the fields data sort by", func() {
+			Expect(data.DatumSortFields()).To(Equal([]string{"time"}))
+		})
+	})
+
+	Context("DatumSortDirections", func() {
+		It("returns the directions data sort in", func() {
+			Expect(data.DatumSortDirections()).To(Equal([]string{"ascending", "descending"}))
+		})
+	})
+
+	Context("DatumSort", func() {
+		Context("Validate", func() {
+			DescribeTable("validates the datum sort",
+				func(mutator func(sort *data.DatumSort), expectedErrors ...error) {
+					sort := &data.DatumSort{Field: pointer.FromString("time"), Direction: pointer.FromString("descending")}
+					mutator(sort)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(sort), expectedErrors...)
+				},
+				Entry("succeeds", func(sort *data.DatumSort) {}),
+				Entry("ascending", func(sort *data.DatumSort) { sort.Direction = pointer.FromString("ascending") }),
+				Entry("field missing", func(sort *data.DatumSort) { sort.Field = nil }, errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/field")),
+				Entry("field invalid", func(sort *data.DatumSort) { sort.Field = pointer.FromString("modifiedTime") }, errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("modifiedTime", []string{"time"}), "/field")),
+				Entry("direction missing", func(sort *data.DatumSort) { sort.Direction = nil }, errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/direction")),
+				Entry("direction invalid", func(sort *data.DatumSort) { sort.Direction = pointer.FromString("sideways") }, errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("sideways", []string{"ascending", "descending"}), "/direction")),
+			)
+		})
+	})
+
+	Context("DatumFilter", func() {
+		Context("Validate", func() {
+			from := time.Now().Add(-time.Hour)
+			to := time.Now()
+
+			DescribeTable("validates the datum filter",
+				func(filter *data.DatumFilter, expectedErrors ...error) {
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(filter), expectedErrors...)
+				},
+				Entry("type", &data.DatumFilter{Type: pointer.FromString("basal")}),
+				Entry("type, subtype and time range", &data.DatumFilter{Type: pointer.FromString("deviceEvent"), SubType: pointer.FromString("status"), Time: &times.TimeRange{From: &from, To: &to}}),
+				Entry("time range end only", &data.DatumFilter{Type: pointer.FromString("basal"), Time: &times.TimeRange{To: &to}}),
+				Entry("type missing", &data.DatumFilter{}, errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type")),
+				Entry("type empty", &data.DatumFilter{Type: pointer.FromString("")}, errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type")),
+				Entry("subtype empty", &data.DatumFilter{Type: pointer.FromString("deviceEvent"), SubType: pointer.FromString("")}, errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/subType")),
+				Entry("time range end before start", &data.DatumFilter{Type: pointer.FromString("basal"), Time: &times.TimeRange{From: &to, To: &from}}, errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(from, to), "/time/to")),
 			)
 		})
 	})
