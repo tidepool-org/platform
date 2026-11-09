@@ -90,7 +90,9 @@ var _ = Describe("UDI", func() {
 			Entry("release time missing", &cluster.Release{Revision: commitHash}, "1.103.2", "release time is missing"),
 			Entry("release revision too short", &cluster.Release{Revision: "868bd7", Time: time.Now()}, "1.103.2", `release revision "868bd7" is invalid`),
 			Entry("client version missing", &cluster.Release{Revision: commitHash, Time: time.Now()}, "", "client version is missing"),
-			Entry("software version longer than 20 characters", &cluster.Release{Revision: commitHash, Time: time.Now()}, "10.100.100000", `software version "10.100.100000-868bd7b" is longer than 20 characters`),
+			Entry("client version longer than 12 characters", &cluster.Release{Revision: commitHash, Time: time.Now()}, "10.100.100000", `client version "10.100.100000" is invalid`),
+			Entry("client version with a GS1 application identifier", &cluster.Release{Revision: commitHash, Time: time.Now()}, "1.0(01)2", `client version "1.0(01)2" is invalid`),
+			Entry("client version with a space", &cluster.Release{Revision: commitHash, Time: time.Now()}, "1.103 2", `client version "1.103 2" is invalid`),
 		)
 	})
 

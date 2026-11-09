@@ -67,12 +67,12 @@ func New(release *cluster.Release, clientVersion string) (*UDI, error) {
 	if clientVersion == "" {
 		return nil, errors.New("client version is missing")
 	}
+	if len(clientVersion) > ClientVersionLengthMaximum || !ClientVersionExpression.MatchString(clientVersion) {
+		return nil, errors.Newf("client version %q is invalid", clientVersion)
+	}
 
 	releaseIdentifier := release.Revision[:ReleaseIdentifierLength]
 	softwareVersion := clientVersion + "-" + releaseIdentifier
-	if len(softwareVersion) > SoftwareVersionLengthMaximum {
-		return nil, errors.Newf("software version %q is longer than %d characters", softwareVersion, SoftwareVersionLengthMaximum)
-	}
 
 	releaseTime := release.Time.UTC()
 	return &UDI{
