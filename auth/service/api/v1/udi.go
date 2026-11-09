@@ -7,7 +7,6 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/request"
-	"github.com/tidepool-org/platform/service/api"
 	"github.com/tidepool-org/platform/udi"
 )
 
@@ -19,7 +18,7 @@ func ErrorUDIUnavailable(err error) error {
 
 func (r *Router) UDIRoutes() []*rest.Route {
 	return []*rest.Route{
-		rest.Post("/v1/udi", api.RequireAuth(r.CreateUDI)),
+		rest.Post("/v1/udi", r.CreateUDI),
 	}
 }
 
