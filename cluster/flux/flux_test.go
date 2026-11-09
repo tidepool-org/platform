@@ -353,6 +353,15 @@ var _ = Describe("Flux", func() {
 			Expect(releaseReporter.Release(ctx)).To(Equal(appliedRelease))
 		})
 
+		It("applies the client timeout to the client built for the certificate authority", func() {
+			Expect(os.WriteFile(certificatePath, certificatePEM(tlsServer.HTTPTestServer.Certificate()), 0600)).To(Succeed())
+			tlsServer.AppendHandlers(func(res http.ResponseWriter, req *http.Request) { <-req.Context().Done() })
+			releaseReporter, err := flux.NewReleaseReporter(&client.Config{Address: tlsServer.URL(), ClientTimeout: 100 * time.Millisecond}, certificatePath, tokenPath, time.Hour, 0)
+			Expect(err).ToNot(HaveOccurred())
+			_, err = releaseReporter.Release(ctx)
+			Expect(err).To(MatchError(ContainSubstring("Client.Timeout exceeded")))
+		})
+
 		It("returns an error if the certificate authority cannot be read", func() {
 			_, err := newTLSReleaseReporter().Release(ctx)
 			Expect(err).To(MatchError(ContainSubstring("unable to read service account certificate authority")))

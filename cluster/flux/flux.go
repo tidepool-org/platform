@@ -63,8 +63,8 @@ type ReleaseReporter struct {
 	httpClient           *http.Client
 }
 
-// NewReleaseReporter reads the Kustomization from the API server at the client address; without a certificate path
-// it uses the default HTTP client
+// NewReleaseReporter reads the Kustomization from the API server at the client address within the client timeouts;
+// without a certificate path it uses the default HTTP client
 func NewReleaseReporter(clientConfig *client.Config, certificatePath string, tokenPath string, cacheDuration time.Duration, errorCacheDuration time.Duration) (*ReleaseReporter, error) {
 	clnt, err := client.NewWithErrorParser(clientConfig, &statusErrorParser{})
 	if err != nil {
@@ -78,7 +78,6 @@ func NewReleaseReporter(clientConfig *client.Config, certificatePath string, tok
 		tokenPath:          tokenPath,
 		cacheDuration:      cacheDuration,
 		errorCacheDuration: errorCacheDuration,
-		httpClient:         http.DefaultClient,
 	}, nil
 }
 
@@ -92,7 +91,8 @@ func NewInClusterReleaseReporter(userAgent string) *ReleaseReporter {
 		return &ReleaseReporter{unavailableErr: errors.New("not running in kubernetes")}
 	}
 
-	clientConfig := &client.Config{Address: "https://" + net.JoinHostPort(cfg.Host, cfg.Port), UserAgent: userAgent}
+	// Release holds its lock and ignores request cancellation while it fetches, so only this timeout ends a stuck fetch
+	clientConfig := &client.Config{Address: "https://" + net.JoinHostPort(cfg.Host, cfg.Port), UserAgent: userAgent, ClientTimeout: RequestTimeout}
 	releaseReporter, err := NewReleaseReporter(clientConfig, filepath.Join(ServiceAccountDirectory, "ca.crt"), filepath.Join(ServiceAccountDirectory, "token"), CacheDuration, ErrorCacheDuration)
 	if err != nil {
 		return &ReleaseReporter{unavailableErr: err}
@@ -169,7 +169,7 @@ func (r *ReleaseReporter) currentHTTPClient() (*http.Client, error) {
 	transport.TLSClientConfig = &tls.Config{RootCAs: rootCAs}
 
 	r.certificateAuthority = certificateAuthority
-	r.httpClient = &http.Client{Transport: transport, Timeout: RequestTimeout}
+	r.httpClient = &http.Client{Transport: transport}
 	return r.httpClient, nil
 }
 
