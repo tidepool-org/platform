@@ -228,6 +228,10 @@ const (
 
 const presetKeyPrefix = "preset:"
 
+// StandardRangeSetKey is the key of the ADA standard preset, the range set the stored
+// summaries are computed with.
+const StandardRangeSetKey = presetKeyPrefix + PresetADAStandard
+
 // PresetRangeSet returns the range set of the named ADA preset, as the frontend (viz's
 // glycemicRanges.js) defines it in each unit, or false for any other name. The pregnancy
 // type 2 preset shares the pregnancy type 1 thresholds. Each call returns a new value,

@@ -2,10 +2,12 @@ package postprocess
 
 import (
 	"fmt"
+	"regexp"
 	"slices"
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
@@ -31,6 +33,11 @@ const (
 	// ReasonSummaryRecalculation reports the summaries of the user must be recalculated
 	// from all of their data, rather than incrementally
 	ReasonSummaryRecalculation = "SUMMARY_RECALCULATION"
+
+	// ReasonClinicSync reports the summaries of the user must be sent to the clinic
+	// service again, whether or not they changed, for every glycemic range set their
+	// patient records use; for example because the ranges of a record changed.
+	ReasonClinicSync = "CLINIC_SYNC"
 )
 
 const (
@@ -51,7 +58,14 @@ func Reasons() []string {
 		ReasonUploadCompleted,
 		ReasonLegacyDataAdded,
 		ReasonSummaryRecalculation,
+		ReasonClinicSync,
 	}
+}
+
+// SyncsClinicSummaries reports whether reasons requires the summaries of the user to be
+// sent to the clinic service even when they didn't change.
+func SyncsClinicSummaries(reasons []string) bool {
+	return slices.Contains(reasons, ReasonClinicSync)
 }
 
 // Data added is intentionally absent to prevent continuous data uploads from constantly triggering syncs
@@ -123,9 +137,23 @@ type Metadata struct {
 	userWork.Metadata `bson:",inline"`
 	Reasons           []string `json:"reasons,omitempty" bson:"reasons,omitempty"`
 
-	// Summary changes already calculated by this work item but not yet reported to the clinic service.
+	// PendingSummaryUpdates and PendingSummaryDeletes are the summary changes already
+	// calculated by this work item but not yet reported to the clinic service, by summary
+	// type. Work created before deletes were recorded by type holds the deleted summary's
+	// id instead, which is still honored.
 	PendingSummaryUpdates []string `json:"pendingSummaryUpdates,omitempty" bson:"pendingSummaryUpdates,omitempty"`
 	PendingSummaryDeletes []string `json:"pendingSummaryDeletes,omitempty" bson:"pendingSummaryDeletes,omitempty"`
+}
+
+// pendingSummaryDeleteExpression matches a summary type, or the id of a summary (see
+// [Metadata]).
+var pendingSummaryDeleteExpression = regexp.MustCompile(
+	"^(" + summaryTypes.SummaryTypeCGM + "|" + summaryTypes.SummaryTypeBGM + "|[0-9a-f]{24})$")
+
+// IsSummaryID reports whether a pending summary delete names a summary by its id, as work
+// created before deletes were recorded by type does, rather than a summary type.
+func IsSummaryID(pendingSummaryDelete string) bool {
+	return primitive.IsValidObjectID(pendingSummaryDelete)
 }
 
 func (m *Metadata) Parse(parser structure.ObjectParser) {
@@ -145,7 +173,7 @@ func (m *Metadata) Validate(validator structure.Validator) {
 	m.Metadata.Validate(validator)
 	validator.StringArray(MetadataKeyReasons, &m.Reasons).NotEmpty().EachOneOf(Reasons()...).EachUnique()
 	validator.StringArray(MetadataKeyPendingSummaryUpdates, &m.PendingSummaryUpdates).EachOneOf(summaryTypes.SummaryTypeCGM, summaryTypes.SummaryTypeBGM).EachUnique()
-	validator.StringArray(MetadataKeyPendingSummaryDeletes, &m.PendingSummaryDeletes).EachNotEmpty().EachUnique()
+	validator.StringArray(MetadataKeyPendingSummaryDeletes, &m.PendingSummaryDeletes).EachMatches(pendingSummaryDeleteExpression).EachUnique()
 }
 
 // recordSummariesUpdate updates the pending/deleted summaries and return true if any changes were made
@@ -158,9 +186,9 @@ func (m *Metadata) recordSummariesUpdate(update SummariesUpdate) bool {
 			changed = true
 		}
 	}
-	for _, summaryID := range update.Deleted {
-		if !slices.Contains(m.PendingSummaryDeletes, summaryID) {
-			m.PendingSummaryDeletes = append(m.PendingSummaryDeletes, summaryID)
+	for _, summaryType := range update.DeletedTypes {
+		if !slices.Contains(m.PendingSummaryDeletes, summaryType) {
+			m.PendingSummaryDeletes = append(m.PendingSummaryDeletes, summaryType)
 			changed = true
 		}
 	}

@@ -5,15 +5,14 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/tidepool-org/platform/errors"
-
-	"github.com/tidepool-org/platform/pointer"
-
 	"github.com/kelseyhightower/envconfig"
-	clinic "github.com/tidepool-org/clinic/client"
 	"go.uber.org/fx"
 
+	clinic "github.com/tidepool-org/clinic/client"
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 //go:generate mockgen -source=service.go -destination=test/service_mocks.go -package=test -typed
@@ -32,8 +31,15 @@ type Client interface {
 	SyncEHRDataForPatient(ctx context.Context, patientID string) error
 	GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams url.Values) ([]clinic.PatientV1, error)
 	GetPatient(ctx context.Context, clinicID, patientID string) (*clinic.PatientV1, error)
-	UpdatePatientSummary(ctx context.Context, patientID string, patientSummary *clinic.PatientSummaryV1) error
+	ListClinicsForPatient(ctx context.Context, patientID string) ([]clinic.PatientClinicRelationshipV1, error)
+	UpdatePatientSummary(ctx context.Context, patientID string, glycemicRangesKey *string, patientSummary *clinic.PatientSummaryV1) (bool, error)
+	// DeletePatientSummary deletes the summary with the id from every patient record
+	// holding it.
+	//
+	// Deprecated: summaries computed for a glycemic range set have no id; use
+	// [Client.DeletePatientSummaryOfType]. It is kept for work created before it existed.
 	DeletePatientSummary(ctx context.Context, summaryID string) error
+	DeletePatientSummaryOfType(ctx context.Context, patientID string, summaryType string) error
 }
 
 type config struct {
@@ -224,8 +230,63 @@ func (d *defaultClient) SyncEHRDataForPatient(ctx context.Context, patientID str
 	return nil
 }
 
-func (d *defaultClient) UpdatePatientSummary(ctx context.Context, patientID string, patientSummary *clinic.PatientSummaryV1) error {
-	response, err := d.httpClient.UpdatePatientSummaryWithResponse(ctx, clinic.PatientId(patientID), *patientSummary)
+// ListClinicsForPatient returns the patient records of the user, each with its clinic,
+// or none when the clinic service reports the user as not found.
+func (d *defaultClient) ListClinicsForPatient(ctx context.Context, patientID string) ([]clinic.PatientClinicRelationshipV1, error) {
+	return page.CollectWithSize(page.PaginationSizeMaximum,
+		func(pagination page.Pagination) ([]clinic.PatientClinicRelationshipV1, error) {
+			response, err := d.httpClient.ListClinicsForPatientWithResponse(ctx, patientID,
+				&clinic.ListClinicsForPatientParams{
+					Offset: pointer.FromInt(pagination.Page * pagination.Size),
+					Limit:  pointer.FromInt(pagination.Size),
+				})
+			if err != nil {
+				return nil, err
+			}
+			if response.StatusCode() == http.StatusNotFound {
+				return nil, nil
+			}
+			if response.StatusCode() != http.StatusOK {
+				err = errors.Preparedf(ErrorCodeClinicClientFailure,
+					"Unexpected status code from clinic service",
+					"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+				err = errors.WithMeta(err, response.HTTPResponse)
+				return nil, err
+			}
+			if response.JSON200 == nil {
+				return nil, nil
+			}
+			return *response.JSON200, nil
+		})
+}
+
+// UpdatePatientSummary reports false, without an error, when the clinic service answers
+// that the user is not a patient of any clinic, as no change or not found. Most users are
+// not, so treating that as a failure would fail the work of nearly every user.
+func (d *defaultClient) UpdatePatientSummary(ctx context.Context, patientID string, glycemicRangesKey *string, patientSummary *clinic.PatientSummaryV1) (bool, error) {
+	params := &clinic.UpdatePatientSummaryParams{GlycemicRangesKey: glycemicRangesKey}
+	response, err := d.httpClient.UpdatePatientSummaryWithResponse(ctx, clinic.PatientId(patientID), params, *patientSummary)
+	if err != nil {
+		return false, err
+	}
+	if response.StatusCode() == http.StatusNoContent || response.StatusCode() == http.StatusNotFound {
+		return false, nil
+	}
+	if response.StatusCode() != http.StatusOK {
+		err = errors.Preparedf(ErrorCodeClinicClientFailure,
+			"Unexpected status code from clinic service",
+			"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.WithMeta(err, response.HTTPResponse)
+		return false, err
+	}
+	return true, nil
+}
+
+// DeletePatientSummary reports no error when the clinic service reports the summary as not
+// found, so that a delete resent by retried work targeting an already deleted summary does
+// not fail the work forever.
+func (d *defaultClient) DeletePatientSummary(ctx context.Context, summaryID string) error {
+	response, err := d.httpClient.DeletePatientSummaryWithResponse(ctx, clinic.SummaryId(summaryID))
 	if err != nil {
 		return err
 	}
@@ -239,15 +300,18 @@ func (d *defaultClient) UpdatePatientSummary(ctx context.Context, patientID stri
 	return nil
 }
 
-// DeletePatientSummary reports no error when the clinic service reports the summary as not found,
-// so that a delete resent by retried work targeting an already deleted summary does not fail the
-// work forever.
-func (d *defaultClient) DeletePatientSummary(ctx context.Context, summaryID string) error {
-	response, err := d.httpClient.DeletePatientSummaryWithResponse(ctx, clinic.SummaryId(summaryID))
+// DeletePatientSummaryOfType deletes the stats of the summary type from every patient
+// record of the user, whatever their glycemic ranges. It tolerates the clinic service
+// answering that the user is not a patient of any clinic, which it does as no change, so
+// that a delete resent by retried work does not fail the work forever. Not found is an
+// error: the clinic service never answers so for this route, so it can only come from a
+// clinic service deployed without the route, and the delete must be retried.
+func (d *defaultClient) DeletePatientSummaryOfType(ctx context.Context, patientID string, summaryType string) error {
+	response, err := d.httpClient.DeletePatientSummaryOfTypeWithResponse(ctx, clinic.PatientId(patientID), summaryType)
 	if err != nil {
 		return err
 	}
-	if response.StatusCode() != http.StatusOK && response.StatusCode() != http.StatusNoContent && response.StatusCode() != http.StatusNotFound {
+	if response.StatusCode() != http.StatusOK && response.StatusCode() != http.StatusNoContent {
 		err = errors.Preparedf(ErrorCodeClinicClientFailure,
 			"Unexpected status code from clinic service",
 			"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)

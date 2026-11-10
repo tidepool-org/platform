@@ -1,11 +1,13 @@
 package clinics
 
 import (
+	"math"
 	"strconv"
 	"strings"
 	"time"
 
 	clinic "github.com/tidepool-org/clinic/client"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/summary/types"
@@ -14,12 +16,13 @@ import (
 // NewPatientSummary returns the summaries given as the patient summary document the clinic service
 // accepts. A type given as nil is omitted from the document, which the clinic service leaves
 // untouched, so each type is reported independently. Continuous summaries have no clinic
-// representation.
+// representation. A summary computed for a glycemic range set is never stored, so it has
+// no id, and none is reported.
 func NewPatientSummary(cgm *types.CGMSummary, bgm *types.BGMSummary) *clinic.PatientSummaryV1 {
 	patientSummary := &clinic.PatientSummaryV1{}
 	if cgm != nil {
 		patientSummary.CgmStats = &clinic.CgmStatsV1{
-			Id:      pointer.FromString(cgm.ID.Hex()),
+			Id:      exportSummaryID(cgm.ID),
 			Config:  exportSummaryConfig(cgm.Config),
 			Dates:   exportSummaryDates(cgm.Dates),
 			Periods: exportCGMPeriods(cgm.Periods),
@@ -27,7 +30,7 @@ func NewPatientSummary(cgm *types.CGMSummary, bgm *types.BGMSummary) *clinic.Pat
 	}
 	if bgm != nil {
 		patientSummary.BgmStats = &clinic.BgmStatsV1{
-			Id:      pointer.FromString(bgm.ID.Hex()),
+			Id:      exportSummaryID(bgm.ID),
 			Config:  exportSummaryConfig(bgm.Config),
 			Dates:   exportSummaryDates(bgm.Dates),
 			Periods: exportBGMPeriods(bgm.Periods),
@@ -36,14 +39,31 @@ func NewPatientSummary(cgm *types.CGMSummary, bgm *types.BGMSummary) *clinic.Pat
 	return patientSummary
 }
 
+func exportSummaryID(id primitive.ObjectID) *clinic.SummaryIdV1 {
+	if id.IsZero() {
+		return nil
+	}
+	return pointer.FromString(id.Hex())
+}
+
+// exportSummaryConfig omits a very low or very high threshold the range set doesn't set.
+// Its cut point is infinite, which JSON can't carry.
 func exportSummaryConfig(config types.Config) clinic.SummaryConfigV1 {
 	return clinic.SummaryConfigV1{
 		SchemaVersion:            config.SchemaVersion,
+		GlycemicRangesKey:        config.GlycemicRangesKey,
 		HighGlucoseThreshold:     config.HighGlucoseThreshold,
-		VeryHighGlucoseThreshold: config.VeryHighGlucoseThreshold,
+		VeryHighGlucoseThreshold: finiteOrNil(config.VeryHighGlucoseThreshold),
 		LowGlucoseThreshold:      config.LowGlucoseThreshold,
-		VeryLowGlucoseThreshold:  config.VeryLowGlucoseThreshold,
+		VeryLowGlucoseThreshold:  finiteOrNil(config.VeryLowGlucoseThreshold),
 	}
+}
+
+func finiteOrNil(value float64) *float64 {
+	if math.IsInf(value, 0) {
+		return nil
+	}
+	return pointer.FromFloat64(value)
 }
 
 func exportSummaryDates(dates types.Dates) clinic.SummaryDatesV1 {

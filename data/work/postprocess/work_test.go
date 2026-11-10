@@ -2,6 +2,7 @@ package postprocess_test
 
 import (
 	"context"
+	"regexp"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -35,7 +36,37 @@ var _ = Describe("Work", func() {
 			"UPLOAD_COMPLETED",
 			"LEGACY_DATA_ADDED",
 			"SUMMARY_RECALCULATION",
+			"CLINIC_SYNC",
 		))
+	})
+
+	Context("SyncsClinicSummaries", func() {
+		DescribeTable("reports whether the reasons require the summaries to be sent to the clinic service",
+			func(reasons []string, expected bool) {
+				Expect(dataWorkPostprocess.SyncsClinicSummaries(reasons)).To(Equal(expected))
+			},
+			Entry("with no reasons", nil, false),
+			Entry("with data added", []string{dataWorkPostprocess.ReasonDataAdded}, false),
+			Entry("with clinic sync", []string{dataWorkPostprocess.ReasonClinicSync}, true),
+			Entry("with clinic sync among others",
+				[]string{dataWorkPostprocess.ReasonDataAdded, dataWorkPostprocess.ReasonClinicSync}, true),
+		)
+	})
+
+	Context("IsSummaryID", func() {
+		It("reports a summary type as not an id", func() {
+			Expect(dataWorkPostprocess.IsSummaryID(summaryTypes.SummaryTypeCGM)).To(BeFalse())
+			Expect(dataWorkPostprocess.IsSummaryID(summaryTypes.SummaryTypeBGM)).To(BeFalse())
+		})
+
+		It("reports the hex form of an object id as an id", func() {
+			Expect(dataWorkPostprocess.IsSummaryID("68ad3f439bd2caa1a5758a9c")).To(BeTrue())
+		})
+
+		It("reports anything else as not an id", func() {
+			Expect(dataWorkPostprocess.IsSummaryID("")).To(BeFalse())
+			Expect(dataWorkPostprocess.IsSummaryID("continuous")).To(BeFalse())
+		})
 	})
 
 	Context("TriggersEHRSync", func() {
@@ -195,8 +226,19 @@ var _ = Describe("Work", func() {
 				),
 				Entry("succeeds with pending summary changes", func(datum *dataWorkPostprocess.Metadata) {
 					datum.PendingSummaryUpdates = []string{summaryTypes.SummaryTypeBGM, summaryTypes.SummaryTypeCGM}
+					datum.PendingSummaryDeletes = []string{summaryTypes.SummaryTypeBGM, summaryTypes.SummaryTypeCGM}
+				}),
+				// Work created before deletions were reported by type recorded the deleted
+				// summary's id
+				Entry("succeeds with a pending summary delete naming a summary id", func(datum *dataWorkPostprocess.Metadata) {
 					datum.PendingSummaryDeletes = []string{"68ad3f439bd2caa1a5758a9c"}
 				}),
+				Entry("reports a pending summary delete is neither a summary type nor an id",
+					func(datum *dataWorkPostprocess.Metadata) {
+						datum.PendingSummaryDeletes = []string{summaryTypes.SummaryTypeContinuous}
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotMatches(summaryTypes.SummaryTypeContinuous, regexp.MustCompile("^(cgm|bgm|[0-9a-f]{24})$")), "/pendingSummaryDeletes/0"),
+				),
 				Entry("reports a pending summary update the clinic service has no representation of",
 					func(datum *dataWorkPostprocess.Metadata) {
 						datum.PendingSummaryUpdates = []string{summaryTypes.SummaryTypeContinuous}
@@ -213,7 +255,7 @@ var _ = Describe("Work", func() {
 					func(datum *dataWorkPostprocess.Metadata) {
 						datum.PendingSummaryDeletes = []string{""}
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/pendingSummaryDeletes/0"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotMatches("", regexp.MustCompile("^(cgm|bgm|[0-9a-f]{24})$")), "/pendingSummaryDeletes/0"),
 				),
 			)
 		})

@@ -99,6 +99,17 @@ var _ = Describe("Processor", func() {
 		return processor.Process(ctx, wrk, processingUpdater)
 	}
 
+	newRelationships := func(ranges ...*clinic.GlycemicRangesV1) []clinic.PatientClinicRelationshipV1 {
+		relationships := make([]clinic.PatientClinicRelationshipV1, 0, len(ranges))
+		for _, each := range ranges {
+			relationships = append(relationships, clinic.PatientClinicRelationshipV1{
+				Clinic:  clinic.ClinicV1{Id: pointer.FromAny(clinic.ClinicIdV1(primitive.NewObjectID().Hex()))},
+				Patient: clinic.PatientV1{Id: &userID, GlycemicRanges: each},
+			})
+		}
+		return relationships
+	}
+
 	BeforeEach(func() {
 		controller = gomock.NewController(GinkgoT())
 		workClient = workTest.NewMockClient(controller)
@@ -244,14 +255,38 @@ var _ = Describe("Processor", func() {
 			expectListNone()
 			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(newSummariesUpdate(summaryTypes.SummaryTypeCGM), nil)
 			expectProcessingUpdate()
-			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any()).Return(errorsTest.RandomError())
+			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any(), gomock.Any()).Return(false, errorsTest.RandomError())
 		}),
 		Entry("reporting a summary deletion to the clinic service", func() {
 			expectListNone()
-			update := dataWorkPostprocess.SummariesUpdate{Deleted: map[string]string{summaryTypes.SummaryTypeCGM: primitive.NewObjectID().Hex()}}
+			update := dataWorkPostprocess.SummariesUpdate{DeletedTypes: []string{summaryTypes.SummaryTypeCGM}}
 			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(update, nil)
 			expectProcessingUpdate()
-			clinicsClient.EXPECT().DeletePatientSummary(gomock.Any(), gomock.Any()).Return(errorsTest.RandomError())
+			clinicsClient.EXPECT().DeletePatientSummaryOfType(gomock.Any(), userID, summaryTypes.SummaryTypeCGM).Return(errorsTest.RandomError())
+		}),
+		Entry("listing the clinics of the patient", func() {
+			expectListNone()
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(newSummariesUpdate(summaryTypes.SummaryTypeCGM), nil)
+			expectProcessingUpdate()
+			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any(), gomock.Any()).Return(true, nil)
+			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(nil, errorsTest.RandomError())
+		}),
+		Entry("summarizing for a range set", func() {
+			expectListNone()
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(newSummariesUpdate(summaryTypes.SummaryTypeCGM), nil)
+			expectProcessingUpdate()
+			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any(), gomock.Any()).Return(true, nil)
+			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges()), nil)
+			summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(nil, nil, errorsTest.RandomError())
+		}),
+		Entry("reporting a range set summary to the clinic service", func() {
+			expectListNone()
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(newSummariesUpdate(summaryTypes.SummaryTypeCGM), nil)
+			expectProcessingUpdate()
+			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any(), gomock.Any()).Return(true, nil)
+			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges()), nil)
+			summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(summaryTest.RandomCGMSummary(userID), nil, nil)
+			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any(), gomock.Any()).Return(false, errorsTest.RandomError())
 		}),
 	)
 
@@ -281,13 +316,14 @@ var _ = Describe("Processor", func() {
 						updated.Revision = wrk.Revision + 1
 						return &updated, nil
 					}),
-				clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any()).DoAndReturn(
-					func(_ context.Context, _ string, patientSummary *clinic.PatientSummaryV1) error {
+				clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any(), gomock.Any()).DoAndReturn(
+					func(_ context.Context, _ string, key *string, patientSummary *clinic.PatientSummaryV1) (bool, error) {
+						Expect(key).To(PointTo(Equal("preset:adaStandard")))
 						Expect(patientSummary.CgmStats).ToNot(BeNil())
 						Expect(patientSummary.CgmStats.Id).To(PointTo(Equal(summariesUpdate.CGM.ID.Hex())))
 						Expect(patientSummary.BgmStats).ToNot(BeNil())
 						Expect(patientSummary.BgmStats.Id).To(PointTo(Equal(summariesUpdate.BGM.ID.Hex())))
-						return nil
+						return false, nil
 					}),
 				clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil),
 			)
@@ -300,11 +336,11 @@ var _ = Describe("Processor", func() {
 			expectListNone()
 			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(summariesUpdate, nil)
 			expectProcessingUpdate()
-			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any()).DoAndReturn(
-				func(_ context.Context, _ string, patientSummary *clinic.PatientSummaryV1) error {
+			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any(), gomock.Any()).DoAndReturn(
+				func(_ context.Context, _ string, _ *string, patientSummary *clinic.PatientSummaryV1) (bool, error) {
 					Expect(patientSummary.CgmStats).ToNot(BeNil())
 					Expect(patientSummary.BgmStats).To(BeNil())
-					return nil
+					return false, nil
 				})
 			clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
 
@@ -323,27 +359,26 @@ var _ = Describe("Processor", func() {
 		})
 
 		It("reports a deletion, before any update", func() {
-			deletedSummaryID := primitive.NewObjectID().Hex()
 			summariesUpdate = newSummariesUpdate(summaryTypes.SummaryTypeBGM)
 			summariesUpdate.CGM = nil
-			summariesUpdate.Deleted = map[string]string{summaryTypes.SummaryTypeCGM: deletedSummaryID}
+			summariesUpdate.DeletedTypes = []string{summaryTypes.SummaryTypeCGM}
 			expectListNone()
 			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(summariesUpdate, nil)
 			processingUpdater.EXPECT().ProcessingUpdate(gomock.Any(), gomock.Any()).DoAndReturn(
 				func(_ context.Context, update work.ProcessingUpdate) (*work.Work, error) {
-					Expect(update.Metadata).To(HaveKeyWithValue("pendingSummaryDeletes", ConsistOf(deletedSummaryID)))
+					Expect(update.Metadata).To(HaveKeyWithValue("pendingSummaryDeletes", ConsistOf(summaryTypes.SummaryTypeCGM)))
 					updated := *wrk
 					updated.Metadata = update.Metadata
 					updated.Revision = wrk.Revision + 1
 					return &updated, nil
 				})
 			gomock.InOrder(
-				clinicsClient.EXPECT().DeletePatientSummary(gomock.Any(), deletedSummaryID).Return(nil),
-				clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any()).DoAndReturn(
-					func(_ context.Context, _ string, patientSummary *clinic.PatientSummaryV1) error {
+				clinicsClient.EXPECT().DeletePatientSummaryOfType(gomock.Any(), userID, summaryTypes.SummaryTypeCGM).Return(nil),
+				clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any(), gomock.Any()).DoAndReturn(
+					func(_ context.Context, _ string, _ *string, patientSummary *clinic.PatientSummaryV1) (bool, error) {
 						Expect(patientSummary.CgmStats).To(BeNil())
 						Expect(patientSummary.BgmStats).ToNot(BeNil())
-						return nil
+						return false, nil
 					}),
 			)
 			clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
@@ -351,8 +386,10 @@ var _ = Describe("Processor", func() {
 			Expect(process().Result).To(Equal(work.ResultDelete))
 		})
 
-		// A change recorded by an earlier attempt was calculated but not yet reported; the retried
-		// calculation reports no further change, so the record alone drives the report
+		// A change recorded by an earlier attempt was calculated but not yet reported; the
+		// retried calculation reports no further change, so the record alone drives the
+		// report. Work created before deletions were reported by type recorded the deleted
+		// summary's id, which is still honored
 		It("reports the changes recorded by an earlier attempt even though this calculation reports none", func() {
 			deletedSummaryID := primitive.NewObjectID().Hex()
 			encoded, err := metadata.Encode(&dataWorkPostprocess.Metadata{
@@ -368,12 +405,12 @@ var _ = Describe("Processor", func() {
 			expectListNone()
 			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(summariesUpdate, nil)
 			clinicsClient.EXPECT().DeletePatientSummary(gomock.Any(), deletedSummaryID).Return(nil)
-			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any()).DoAndReturn(
-				func(_ context.Context, _ string, patientSummary *clinic.PatientSummaryV1) error {
+			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any(), gomock.Any()).DoAndReturn(
+				func(_ context.Context, _ string, _ *string, patientSummary *clinic.PatientSummaryV1) (bool, error) {
 					Expect(patientSummary.CgmStats).ToNot(BeNil())
 					Expect(patientSummary.CgmStats.Id).To(PointTo(Equal(summariesUpdate.CGM.ID.Hex())))
 					Expect(patientSummary.BgmStats).To(BeNil())
-					return nil
+					return false, nil
 				})
 			clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
 
@@ -385,7 +422,7 @@ var _ = Describe("Processor", func() {
 			expectListNone()
 			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(summariesUpdate, nil)
 			expectProcessingUpdate()
-			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any()).Return(errorsTest.RandomError())
+			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any(), gomock.Any()).Return(false, errorsTest.RandomError())
 
 			result := process()
 			Expect(result.Result).To(Equal(work.ResultFailing))
@@ -404,6 +441,171 @@ var _ = Describe("Processor", func() {
 			Expect(result.Result).To(Equal(work.ResultFailing))
 			Expect(result.FailingUpdate.Metadata).To(HaveKeyWithValue("pendingSummaryUpdates",
 				ConsistOf(summaryTypes.SummaryTypeCGM)))
+		})
+	})
+
+	// The clinic service stores, in each patient record, a summary computed for the
+	// glycemic ranges of the record, so a user whose records use other range sets than the
+	// standard one is reported a summary for each, tagged with its key, after the standard
+	// one
+	Context("when the patient records of the user use other range sets", func() {
+		var summariesUpdate dataWorkPostprocess.SummariesUpdate
+		var rangeSetSummary *summaryTypes.CGMSummary
+
+		expectStandardReport := func(found bool) *gomock.Call {
+			return clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaStandard"), gomock.Any()).Return(found, nil).Call
+		}
+
+		BeforeEach(func() {
+			summariesUpdate = newSummariesUpdate(summaryTypes.SummaryTypeCGM)
+			rangeSetSummary = summaryTest.RandomCGMSummary(userID)
+			expectListNone()
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(summariesUpdate, nil)
+			expectProcessingUpdate()
+		})
+
+		It("reports a summary for each range set, tagged with its key, after the standard one", func() {
+			custom := customRanges("custom:mg/dL:54,70,180,250")
+			gomock.InOrder(
+				expectStandardReport(true),
+				clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges(), custom), nil),
+				summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).DoAndReturn(
+					func(_ context.Context, _ string, rangeSet summaryTypes.RangeSet) (*summaryTypes.CGMSummary, *summaryTypes.BGMSummary, error) {
+						Expect(rangeSet.Key).To(Equal("preset:adaHighRisk"))
+						return rangeSetSummary, nil, nil
+					}),
+				clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaHighRisk"), gomock.Any()).DoAndReturn(
+					func(_ context.Context, _ string, _ *string, patientSummary *clinic.PatientSummaryV1) (bool, error) {
+						Expect(patientSummary.CgmStats).ToNot(BeNil())
+						Expect(patientSummary.CgmStats.Id).To(BeNil())
+						Expect(patientSummary.BgmStats).To(BeNil())
+						return true, nil
+					}),
+				summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).DoAndReturn(
+					func(_ context.Context, _ string, rangeSet summaryTypes.RangeSet) (*summaryTypes.CGMSummary, *summaryTypes.BGMSummary, error) {
+						Expect(rangeSet.Key).To(Equal("custom:mg/dL:54,70,180,250"))
+						return rangeSetSummary, nil, nil
+					}),
+				clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("custom:mg/dL:54,70,180,250"), gomock.Any()).Return(true, nil),
+			)
+
+			Expect(process().Result).To(Equal(work.ResultDelete))
+		})
+
+		It("reports each range set once, however many records use it", func() {
+			expectStandardReport(true)
+			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges(), highRiskRanges()), nil)
+			summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(rangeSetSummary, nil, nil)
+			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaHighRisk"), gomock.Any()).Return(true, nil)
+
+			Expect(process().Result).To(Equal(work.ResultDelete))
+		})
+
+		// The standard summary was already reported to the records using the standard
+		// ranges, whether they declare them or have none
+		It("reports nothing further for records using the standard ranges", func() {
+			expectStandardReport(true)
+			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(standardRanges(), nil), nil)
+
+			Expect(process().Result).To(Equal(work.ResultDelete))
+		})
+
+		// A failure doesn't keep the other range sets from being reported; the retry
+		// reports them all again
+		It("reports the other range sets, then fails, when one fails to be summarized", func() {
+			expectStandardReport(true)
+			custom := customRanges("custom:mg/dL:54,70,180,250")
+			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges(), custom), nil)
+			gomock.InOrder(
+				summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(nil, nil, errorsTest.RandomError()),
+				summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(rangeSetSummary, nil, nil),
+			)
+			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("custom:mg/dL:54,70,180,250"), gomock.Any()).Return(true, nil)
+
+			Expect(process().Result).To(Equal(work.ResultFailing))
+		})
+
+		It("reports the other range sets, then fails, when one fails to be reported", func() {
+			expectStandardReport(true)
+			custom := customRanges("custom:mg/dL:54,70,180,250")
+			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges(), custom), nil)
+			summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(rangeSetSummary, nil, nil).Times(2)
+			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaHighRisk"), gomock.Any()).Return(false, errorsTest.RandomError())
+			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("custom:mg/dL:54,70,180,250"), gomock.Any()).Return(true, nil)
+
+			Expect(process().Result).To(Equal(work.ResultFailing))
+		})
+
+		It("fails when the patient records cannot be listed", func() {
+			expectStandardReport(true)
+			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(nil, errorsTest.RandomError())
+
+			Expect(process().Result).To(Equal(work.ResultFailing))
+		})
+
+		// Retrying wouldn't change that; the clinic service validates ranges it stores
+		It("skips a range set it cannot summarize with", func() {
+			expectStandardReport(true)
+			invalid := customRanges("custom:mg/dL:104,105,180,")
+			invalid.Custom.Thresholds = clinic.GlycemicRangesThresholdsV1{VeryLow: pointer.FromFloat64(104), Low: 105, High: 180}
+			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(invalid, highRiskRanges()), nil)
+			summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(rangeSetSummary, nil, nil)
+			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaHighRisk"), gomock.Any()).Return(true, nil)
+
+			Expect(process().Result).To(Equal(work.ResultDelete))
+		})
+
+		It("reports nothing for a range set without a stored summary to compute from", func() {
+			expectStandardReport(true)
+			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges()), nil)
+			summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(nil, nil, nil)
+
+			Expect(process().Result).To(Equal(work.ResultDelete))
+		})
+
+		// Most users are not a patient of any clinic, so their records are not listed
+		It("lists no records when the clinic service found none for the standard report", func() {
+			expectStandardReport(false)
+
+			Expect(process().Result).To(Equal(work.ResultDelete))
+		})
+	})
+
+	// A change to the glycemic ranges of a patient record is reported by requesting a sync,
+	// which reports the summaries even though the data of the user didn't change
+	Context("when a reason requests a sync with the clinic service", func() {
+		BeforeEach(func() {
+			wrk = newWork(work.StateProcessing, []string{dataWorkPostprocess.ReasonClinicSync}, time.Now().Add(-time.Minute))
+			expectListNone()
+		})
+
+		It("reports every summary the user has, even though none changed", func() {
+			summariesUpdate := newSummariesUpdate()
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(summariesUpdate, nil)
+			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaStandard"), gomock.Any()).DoAndReturn(
+				func(_ context.Context, _ string, _ *string, patientSummary *clinic.PatientSummaryV1) (bool, error) {
+					Expect(patientSummary.CgmStats).ToNot(BeNil())
+					Expect(patientSummary.CgmStats.Id).To(PointTo(Equal(summariesUpdate.CGM.ID.Hex())))
+					Expect(patientSummary.BgmStats).ToNot(BeNil())
+					return true, nil
+				})
+			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges()), nil)
+			summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(summaryTest.RandomCGMSummary(userID), summaryTest.RandomBGMSummary(userID), nil)
+			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaHighRisk"), gomock.Any()).Return(true, nil)
+
+			Expect(process().Result).To(Equal(work.ResultDelete))
+		})
+
+		It("reports nothing when the user has no summaries", func() {
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+
+			Expect(process().Result).To(Equal(work.ResultDelete))
+		})
+
+		It("does not request an EHR synchronization", func() {
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+
+			Expect(process().Result).To(Equal(work.ResultDelete))
 		})
 	})
 
@@ -570,3 +772,25 @@ var _ = Describe("Processor", func() {
 		})
 	})
 })
+
+func standardRanges() *clinic.GlycemicRangesV1 {
+	return &clinic.GlycemicRangesV1{Type: clinic.Preset, Preset: clinic.ADAStandard, Key: "preset:adaStandard"}
+}
+
+func highRiskRanges() *clinic.GlycemicRangesV1 {
+	return &clinic.GlycemicRangesV1{Type: clinic.Preset, Preset: clinic.ADAHighRisk, Key: "preset:adaHighRisk"}
+}
+
+func customRanges(key string) *clinic.GlycemicRangesV1 {
+	return &clinic.GlycemicRangesV1{
+		Type: clinic.Custom,
+		Key:  key,
+		Custom: clinic.GlycemicRangesCustomV1{
+			Name:  "Mine",
+			Units: clinic.GlycemicRangesCustomV1UnitsMgdL,
+			Thresholds: clinic.GlycemicRangesThresholdsV1{
+				VeryLow: pointer.FromFloat64(54), Low: 70, High: 180, VeryHigh: pointer.FromFloat64(250),
+			},
+		},
+	}
+}

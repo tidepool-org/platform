@@ -24,6 +24,11 @@ type Processor struct {
 
 	pendingBuilder  *deferredPendingBuilder
 	summariesUpdate SummariesUpdate
+
+	// patientFound records whether the clinic service found a patient record of the user
+	// when the standard summaries were reported. Range-set summaries are computed only
+	// then, as most users are a patient of no clinic.
+	patientFound bool
 }
 
 func NewProcessor(dependencies Dependencies) (*Processor, error) {
@@ -60,6 +65,7 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdat
 		p.absorbPending,
 		p.updateSummaries,
 		p.updateClinicSummaries,
+		p.updateRangeSetSummaries,
 		p.triggerEHRSync,
 	).Process(p.Delete)
 }
@@ -175,43 +181,136 @@ func (p *Processor) updateSummaries() *work.ProcessResult {
 		log.LoggerFromContext(p.Context()).WithFields(log.Fields{
 			"reasons": p.Metadata().Reasons,
 			"updated": p.summariesUpdate.UpdatedTypes,
-			"deleted": p.summariesUpdate.Deleted,
+			"deleted": p.summariesUpdate.DeletedTypes,
 		}).Info("updated user summaries")
 	}
 
 	return nil
 }
 
+// updateClinicSummaries reports the standard summaries to the clinic service: those that
+// changed, or every one the user has when a reason requires a sync. The report is tagged
+// with the standard range set's key, so that it reaches only the patient records using it;
+// updateRangeSetSummaries reports to the others. A deletion reaches every record, whatever
+// its ranges.
 func (p *Processor) updateClinicSummaries() *work.ProcessResult {
 	workMetadata := p.Metadata()
-	if len(workMetadata.PendingSummaryUpdates) == 0 && len(workMetadata.PendingSummaryDeletes) == 0 {
+	userID := *workMetadata.UserID
+	sync := SyncsClinicSummaries(workMetadata.Reasons)
+	if len(workMetadata.PendingSummaryUpdates) == 0 &&
+		len(workMetadata.PendingSummaryDeletes) == 0 && !sync {
+
 		return nil
 	}
 
-	for _, summaryID := range workMetadata.PendingSummaryDeletes {
-		if err := p.ClinicsClient.DeletePatientSummary(p.Context(), summaryID); err != nil {
+	for _, pendingDelete := range workMetadata.PendingSummaryDeletes {
+		var err error
+		if IsSummaryID(pendingDelete) {
+			err = p.ClinicsClient.DeletePatientSummary(p.Context(), pendingDelete)
+		} else {
+			err = p.ClinicsClient.DeletePatientSummaryOfType(p.Context(), userID, pendingDelete)
+		}
+		if err != nil {
 			return p.Failing(errors.Wrap(err, "unable to delete patient summary"))
 		}
 	}
 
 	var cgm *summaryTypes.CGMSummary
 	var bgm *summaryTypes.BGMSummary
-	if slices.Contains(workMetadata.PendingSummaryUpdates, summaryTypes.SummaryTypeCGM) {
+	updates := workMetadata.PendingSummaryUpdates
+	if sync || slices.Contains(updates, summaryTypes.SummaryTypeCGM) {
 		cgm = p.summariesUpdate.CGM
 	}
-	if slices.Contains(workMetadata.PendingSummaryUpdates, summaryTypes.SummaryTypeBGM) {
+	if sync || slices.Contains(updates, summaryTypes.SummaryTypeBGM) {
 		bgm = p.summariesUpdate.BGM
 	}
 	if cgm != nil || bgm != nil {
-		if err := p.ClinicsClient.UpdatePatientSummary(p.Context(), *p.Metadata().UserID, clinics.NewPatientSummary(cgm, bgm)); err != nil {
+		key := pointer.FromString(summaryTypes.StandardRangeSetKey)
+		patientSummary := clinics.NewPatientSummary(cgm, bgm)
+		found, err := p.ClinicsClient.UpdatePatientSummary(p.Context(), userID, key, patientSummary)
+		if err != nil {
 			return p.Failing(errors.Wrap(err, "unable to update patient summary"))
 		}
+		p.patientFound = found
 	}
 
 	log.LoggerFromContext(p.Context()).WithFields(log.Fields{
 		"updated": workMetadata.PendingSummaryUpdates,
 		"deleted": workMetadata.PendingSummaryDeletes,
+		"sync":    sync,
 	}).Debug("synced user summaries with the clinic service")
+
+	return nil
+}
+
+// updateRangeSetSummaries reports, for each glycemic range set other than the standard
+// one that the user's patient records use, a summary computed for it, tagged with its key.
+// The range sets are found afresh on each attempt from the records the clinic service
+// lists, so the metadata records nothing; the clinic service accepts a report resent by a
+// retry as a redelivery.
+//
+// A record whose ranges describe no range set platform knows is skipped and logged as an
+// error, as a retry wouldn't change that; the clinic service rejects such ranges, so none
+// are expected. A range set that fails to be summarized or reported doesn't stop the
+// others: each is attempted, and the work then fails, so that the retry reports them all
+// again.
+func (p *Processor) updateRangeSetSummaries() *work.ProcessResult {
+	if !p.patientFound {
+		return nil
+	}
+	userID := *p.Metadata().UserID
+	logger := log.LoggerFromContext(p.Context())
+
+	relationships, err := p.ClinicsClient.ListClinicsForPatient(p.Context(), userID)
+	if err != nil {
+		return p.Failing(errors.Wrap(err, "unable to list clinics for patient"))
+	}
+
+	var keys []string
+	rangeSets := map[string]summaryTypes.RangeSet{}
+	for _, relationship := range relationships {
+		rangeSet, err := clinics.RangeSetFor(relationship.Patient.GlycemicRanges)
+		if err != nil {
+			logger.WithError(err).WithField("clinicId", relationship.Clinic.Id).
+				Error("unable to summarize for the glycemic ranges of a patient record")
+			continue
+		}
+		if rangeSet.Key == summaryTypes.StandardRangeSetKey {
+			continue
+		}
+		if _, seen := rangeSets[rangeSet.Key]; !seen {
+			rangeSets[rangeSet.Key] = rangeSet
+			keys = append(keys, rangeSet.Key)
+		}
+	}
+
+	var errs []error
+	for _, key := range keys {
+		cgm, bgm, err := p.SummarizeForRangeSet(p.Context(), userID, rangeSets[key])
+		if err != nil {
+			errs = append(errs, errors.Wrapf(err, "unable to summarize for range set %q", key))
+			continue
+		}
+		if cgm == nil && bgm == nil {
+			continue
+		}
+		patientSummary := clinics.NewPatientSummary(cgm, bgm)
+		_, err = p.ClinicsClient.UpdatePatientSummary(p.Context(), userID, pointer.FromString(key), patientSummary)
+		if err != nil {
+			errs = append(errs, errors.Wrapf(err, "unable to update patient summary for range set %q", key))
+		}
+	}
+
+	if len(keys) > 0 {
+		logger.WithFields(log.Fields{
+			"count":  len(keys),
+			"keys":   keys,
+			"failed": len(errs),
+		}).Info("synced range set summaries with the clinic service")
+	}
+	if err := errors.Append(errs...); err != nil {
+		return p.Failing(err)
+	}
 
 	return nil
 }
