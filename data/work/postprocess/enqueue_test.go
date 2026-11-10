@@ -62,6 +62,21 @@ var _ = Describe("Enqueue", func() {
 		Expect(created().Metadata).To(HaveKeyWithValue("reasons", ConsistOf(dataWorkPostprocess.ReasonDataAdded)))
 	})
 
+	DescribeTable("creates work with a priority based on its reasons",
+		func(reasons []string, expected int) {
+			created := expectCreate()
+
+			Expect(dataWorkPostprocess.Enqueue(ctx, workClient, userID, reasons...)).To(Succeed())
+
+			Expect(created().ProcessingPriority).To(Equal(expected))
+		},
+		Entry("data added", []string{dataWorkPostprocess.ReasonDataAdded}, 0),
+		Entry("summary recalculation", []string{dataWorkPostprocess.ReasonSummaryRecalculation},
+			dataWorkPostprocess.ProcessingPriorityLow),
+		Entry("data added and summary recalculation",
+			[]string{dataWorkPostprocess.ReasonDataAdded, dataWorkPostprocess.ReasonSummaryRecalculation}, 0),
+	)
+
 	// Work is never merged into work already pending, so that reporting a change is a single insert.
 	// The deduplication id is deliberately absent as it would instead discard the work reported.
 	It("creates work that is neither deduplicated nor merged into work already pending", func() {
