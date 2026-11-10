@@ -173,6 +173,66 @@ var _ = Describe("time_range", func() {
 				})
 			})
 
+			Context("Span", func() {
+				var first = test.RandomTime()
+				var second = test.RandomTimeAfter(first)
+				var third = test.RandomTimeAfter(second)
+				var fourth = test.RandomTimeAfter(third)
+
+				DescribeTable("returns a spanned time range",
+					func(left times.TimeRange, right times.TimeRange, expected times.TimeRange) {
+						leftOriginal := left
+						rightOriginal := right
+						Expect(left.Span(right)).To(Equal(expected))
+						Expect(left).To(Equal(leftOriginal))
+						Expect(right).To(Equal(rightOriginal))
+					},
+					Entry("empty", times.TimeRange{}, times.TimeRange{}, times.TimeRange{}),
+					Entry("from only", times.TimeRange{From: pointer.From(first)}, times.TimeRange{}, times.TimeRange{From: pointer.From(first)}),
+					Entry("from other only", times.TimeRange{}, times.TimeRange{From: pointer.From(first)}, times.TimeRange{From: pointer.From(first)}),
+					Entry("from before other", times.TimeRange{From: pointer.From(first)}, times.TimeRange{From: pointer.From(second)}, times.TimeRange{From: pointer.From(first)}),
+					Entry("from after other", times.TimeRange{From: pointer.From(second)}, times.TimeRange{From: pointer.From(first)}, times.TimeRange{From: pointer.From(first)}),
+					Entry("from equal to other", times.TimeRange{From: pointer.From(first)}, times.TimeRange{From: pointer.From(first)}, times.TimeRange{From: pointer.From(first)}),
+					Entry("to only", times.TimeRange{To: pointer.From(first)}, times.TimeRange{}, times.TimeRange{To: pointer.From(first)}),
+					Entry("to other only", times.TimeRange{}, times.TimeRange{To: pointer.From(first)}, times.TimeRange{To: pointer.From(first)}),
+					Entry("to before other", times.TimeRange{To: pointer.From(first)}, times.TimeRange{To: pointer.From(second)}, times.TimeRange{To: pointer.From(second)}),
+					Entry("to after other", times.TimeRange{To: pointer.From(second)}, times.TimeRange{To: pointer.From(first)}, times.TimeRange{To: pointer.From(second)}),
+					Entry("to equal to other", times.TimeRange{To: pointer.From(first)}, times.TimeRange{To: pointer.From(first)}, times.TimeRange{To: pointer.From(first)}),
+					Entry("multiple", times.TimeRange{From: pointer.From(first), To: pointer.From(first)}, times.TimeRange{From: pointer.From(second), To: pointer.From(second)}, times.TimeRange{From: pointer.From(first), To: pointer.From(second)}),
+					Entry("overlapping", times.TimeRange{From: pointer.From(first), To: pointer.From(third)}, times.TimeRange{From: pointer.From(second), To: pointer.From(fourth)}, times.TimeRange{From: pointer.From(first), To: pointer.From(fourth)}),
+					Entry("contained", times.TimeRange{From: pointer.From(first), To: pointer.From(fourth)}, times.TimeRange{From: pointer.From(second), To: pointer.From(third)}, times.TimeRange{From: pointer.From(first), To: pointer.From(fourth)}),
+					Entry("touching", times.TimeRange{From: pointer.From(first), To: pointer.From(second)}, times.TimeRange{From: pointer.From(second), To: pointer.From(third)}, times.TimeRange{From: pointer.From(first), To: pointer.From(third)}),
+					Entry("disjoint includes gap", times.TimeRange{From: pointer.From(first), To: pointer.From(second)}, times.TimeRange{From: pointer.From(third), To: pointer.From(fourth)}, times.TimeRange{From: pointer.From(first), To: pointer.From(fourth)}),
+					Entry("zero length", times.TimeRange{From: pointer.From(first), To: pointer.From(first)}, times.TimeRange{}, times.TimeRange{From: pointer.From(first), To: pointer.From(first)}),
+					Entry("from only and to other only", times.TimeRange{From: pointer.From(first)}, times.TimeRange{To: pointer.From(second)}, times.TimeRange{From: pointer.From(first), To: pointer.From(second)}),
+					Entry("from only and to other only inverted", times.TimeRange{From: pointer.From(second)}, times.TimeRange{To: pointer.From(first)}, times.TimeRange{}),
+					Entry("inverted", times.TimeRange{From: pointer.From(second), To: pointer.From(first)}, times.TimeRange{}, times.TimeRange{}),
+					Entry("inverted covered by other", times.TimeRange{From: pointer.From(second), To: pointer.From(first)}, times.TimeRange{From: pointer.From(first), To: pointer.From(second)}, times.TimeRange{From: pointer.From(first), To: pointer.From(second)}),
+					Entry("zero time", times.TimeRange{From: pointer.From(time.Time{})}, times.TimeRange{From: pointer.From(first)}, times.TimeRange{From: pointer.From(time.Time{})}),
+				)
+
+				It("returns a time range with this time range's location when the times are equal", func() {
+					location, err := time.LoadLocation(test.RandomStringFromArray(timeZone.Names()))
+					Expect(err).ToNot(HaveOccurred())
+					Expect(location).ToNot(BeNil())
+					timeRange := times.TimeRange{From: pointer.From(first.UTC()), To: pointer.From(second.UTC())}
+					other := times.TimeRange{From: pointer.From(first.In(location)), To: pointer.From(second.In(location))}
+					Expect(timeRange.Span(other)).To(Equal(timeRange))
+					Expect(other.Span(timeRange)).To(Equal(other))
+				})
+
+				It("returns a time range that does not share pointers with the originals", func() {
+					timeRange := times.TimeRange{From: pointer.From(first), To: pointer.From(second)}
+					other := times.TimeRange{From: pointer.From(second), To: pointer.From(first)}
+					span := timeRange.Span(other)
+					Expect(span.From).ToNot(BeIdenticalTo(timeRange.From))
+					Expect(span.To).ToNot(BeIdenticalTo(timeRange.To))
+					span = other.Span(timeRange)
+					Expect(span.From).ToNot(BeIdenticalTo(timeRange.From))
+					Expect(span.To).ToNot(BeIdenticalTo(timeRange.To))
+				})
+			})
+
 			Context("Clamped", func() {
 				var first = test.RandomTime()
 				var second = test.RandomTimeAfter(first)

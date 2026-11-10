@@ -4,6 +4,7 @@ import (
 	"context"
 	"maps"
 	"net/http"
+	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -24,6 +25,7 @@ import (
 	structureNormalizer "github.com/tidepool-org/platform/structure/normalizer"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/task"
+	"github.com/tidepool-org/platform/times"
 )
 
 //go:generate mockgen -source=runner.go -destination=test/runner_mocks.go -package=test -typed
@@ -32,7 +34,9 @@ const (
 	AvailableAfterDuration       = 120 * time.Minute
 	AvailableAfterDurationJitter = 15 * time.Minute
 	DataSetSize                  = 2000
-	TaskDurationMaximum          = 15 * time.Minute
+	TaskDurationMaximum          = 30 * time.Minute
+	TaskTimeout                  = TaskDurationMaximum + 5*time.Minute
+	TaskDeadline                 = TaskTimeout + 5*time.Minute
 	TaskRetryCountMaximum        = 4                // Last retry after ~(AvailableAfterDuration * (2^TaskRetryCountMaximum - 1)) hours (discounting AvailableAfterDurationJitter)
 	DataRangeDaysMaximum         = 30               // Per Dexcom documentation
 	ResumeAfterDuration          = 1 * time.Minute  // Resume interrupted work after a short delay, so that a later run can pick up where the previous one left off
@@ -115,11 +119,11 @@ func (r *Runner) GetRunnerType() string {
 }
 
 func (r *Runner) GetRunnerDeadline() time.Duration {
-	return TaskDurationMaximum * 3
+	return TaskDeadline
 }
 
 func (r *Runner) GetRunnerTimeout() time.Duration {
-	return TaskDurationMaximum * 2
+	return TaskTimeout
 }
 
 func (r *Runner) GetRunnerDurationMaximum() time.Duration {
@@ -509,6 +513,11 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 		return t.complete() // No data, but still successful import
 	}
 
+	t.logger = t.logger.WithField("dataRange", dataRange)
+
+	var timeRange times.TimeRange
+	defer func() { t.logger.WithField("timeRange", timeRange).Info("fetchSinceLatestDataTime") }()
+
 	startTime := dataRange.StartTime
 	for {
 		endTime := startTime.AddDate(0, 0, DataRangeDaysMaximum)
@@ -516,7 +525,9 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 			endTime = dataRange.EndTime
 		}
 
-		if err := t.fetch(startTime, endTime); err != nil {
+		fetchTimeRange, err := t.fetch(startTime, endTime)
+		timeRange = timeRange.Span(fetchTimeRange)
+		if err != nil {
 			return err
 		}
 
@@ -552,9 +563,12 @@ func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
 		return nil, ErrorResourceFailureError(errors.New("data ranges response is missing"))
 	}
 
+	lgr := t.logger.WithFields(log.Fields{"response": response, "raw": response.Raw})
+
 	// Get data range, if none valid, then indicate nothing to fetch
 	dataRange := response.DataRange()
 	if dataRange == nil {
+		lgr.Info("Data range is missing")
 		return nil, nil
 	}
 
@@ -564,6 +578,7 @@ func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
 	startTime := ClampTime(*dataRange.Start.SystemTimeRaw(), startTimeMinimum, endTimeMaximum)
 	endTime := ClampTime(*dataRange.End.SystemTimeRaw(), startTimeMinimum, endTimeMaximum)
 	if !startTime.Before(endTime) {
+		lgr.WithFields(log.Fields{"startTimeMinimum": startTimeMinimum, "endTimeMaximum": endTimeMaximum, "startTime": startTime, "endTime": endTime}).Info("Start time is not before end time")
 		return nil, nil
 	}
 
@@ -573,24 +588,26 @@ func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
 	}, nil
 }
 
-func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
+func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) (times.TimeRange, error) {
+	var timeRange times.TimeRange
+
 	datumArray, err := t.fetchData(startTime, endTime)
 	if err != nil {
-		return err
+		return timeRange, err
 	} else if len(datumArray) == 0 {
-		return nil
+		return timeRange, nil
 	}
 
 	if err = t.prepareDataSet(); err != nil {
-		return err
+		return timeRange, err
 	}
 
-	if err = t.storeDatumArray(datumArray); err != nil {
-		return err
+	if timeRange, err = t.storeDatumArray(datumArray); err != nil {
+		return timeRange, err
 	}
 
 	t.commitDeviceHashesPending()
-	return nil
+	return timeRange, nil
 }
 
 func (t *TaskRunner) preloadDataSet() error {
@@ -868,39 +885,43 @@ func (t *TaskRunner) createDataSet() (*data.DataSet, error) {
 	return dataSet, nil
 }
 
-func (t *TaskRunner) storeDatumArray(datumArray data.Data) error {
+func (t *TaskRunner) storeDatumArray(datumArray data.Data) (times.TimeRange, error) {
+	var timeRange times.TimeRange
+
 	length := len(datumArray)
 	for startIndex := 0; startIndex < length; startIndex += DataSetSize {
-		endIndex := startIndex + DataSetSize
-		if endIndex > length {
-			endIndex = length
-		}
+		endIndex := min(startIndex+DataSetSize, length)
 
 		partialDatumArray := datumArray[startIndex:endIndex]
 
 		if err := t.DataClient().CreateDataSetsData(t.context, *t.dataSet.UploadID, partialDatumArray); err != nil {
-			return ErrorResourceFailureError(errors.Wrap(err, "unable to create data set data"))
+			return timeRange, ErrorResourceFailureError(errors.Wrap(err, "unable to create data set data"))
 		}
 
+		// Time is a required, validated field, so we can safely assume the first and last elements have a valid time
 		earliestDataTime := partialDatumArray[0].GetTime()
 		latestDataTime := partialDatumArray[len(partialDatumArray)-1].GetTime()
+
+		// Include the data in the time range before any further failures, since it has already been stored
+		timeRange = timeRange.Span(times.TimeRange{From: earliestDataTime, To: latestDataTime})
+
 		if err := t.updateDataSourceWithDataTime(earliestDataTime, latestDataTime); err != nil {
-			return err
+			return timeRange, err
 		}
 
 		// Determine last known timezone offset and persist with the data set
 		var timezoneOffset *int
-		for index := len(partialDatumArray) - 1; index >= 0; index-- {
-			if timezoneOffset = partialDatumArray[index].GetTimeZoneOffset(); timezoneOffset != nil {
+		for _, datum := range slices.Backward(partialDatumArray) {
+			if timezoneOffset = datum.GetTimeZoneOffset(); timezoneOffset != nil {
 				break
 			}
 		}
 		if err := t.updateDataSetWithTimezoneOffset(timezoneOffset); err != nil {
-			return err
+			return timeRange, err
 		}
 	}
 
-	return nil
+	return timeRange, nil
 }
 
 func (t *TaskRunner) beforeEarliestDataTime(earliestDataTime *time.Time) bool {
