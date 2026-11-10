@@ -16,6 +16,7 @@ import (
 	gomock "go.uber.org/mock/gomock"
 
 	postprocess "github.com/tidepool-org/platform/data/work/postprocess"
+	types "github.com/tidepool-org/platform/summary/types"
 )
 
 // MockSummarizers is a mock of Summarizers interface.
@@ -77,6 +78,46 @@ func (c *MockSummarizersRecalculateSummariesCall) Do(f func(context.Context, str
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockSummarizersRecalculateSummariesCall) DoAndReturn(f func(context.Context, string) (postprocess.SummariesUpdate, error)) *MockSummarizersRecalculateSummariesCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SummarizeForRangeSet mocks base method.
+func (m *MockSummarizers) SummarizeForRangeSet(ctx context.Context, userID string, rangeSet types.RangeSet) (*types.CGMSummary, *types.BGMSummary, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SummarizeForRangeSet", ctx, userID, rangeSet)
+	ret0, _ := ret[0].(*types.CGMSummary)
+	ret1, _ := ret[1].(*types.BGMSummary)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// SummarizeForRangeSet indicates an expected call of SummarizeForRangeSet.
+func (mr *MockSummarizersMockRecorder) SummarizeForRangeSet(ctx, userID, rangeSet any) *MockSummarizersSummarizeForRangeSetCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SummarizeForRangeSet", reflect.TypeOf((*MockSummarizers)(nil).SummarizeForRangeSet), ctx, userID, rangeSet)
+	return &MockSummarizersSummarizeForRangeSetCall{Call: call}
+}
+
+// MockSummarizersSummarizeForRangeSetCall wrap *gomock.Call
+type MockSummarizersSummarizeForRangeSetCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockSummarizersSummarizeForRangeSetCall) Return(arg0 *types.CGMSummary, arg1 *types.BGMSummary, arg2 error) *MockSummarizersSummarizeForRangeSetCall {
+	c.Call = c.Call.Return(arg0, arg1, arg2)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockSummarizersSummarizeForRangeSetCall) Do(f func(context.Context, string, types.RangeSet) (*types.CGMSummary, *types.BGMSummary, error)) *MockSummarizersSummarizeForRangeSetCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockSummarizersSummarizeForRangeSetCall) DoAndReturn(f func(context.Context, string, types.RangeSet) (*types.CGMSummary, *types.BGMSummary, error)) *MockSummarizersSummarizeForRangeSetCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

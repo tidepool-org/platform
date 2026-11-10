@@ -26,6 +26,7 @@ func SummaryRoutes() []dataService.Route {
 		dataService.Get("/v1/summaries/con/:userId", GetSummary[*types.ContinuousPeriods, *types.ContinuousBucket], api.RequireAuth),
 
 		dataService.Post("/v1/summaries/:userId", UpdateSummaries, api.RequireAuth),
+		dataService.Post("/v1/summaries/:userId/sync", SyncSummaries, api.RequireServer),
 
 		dataService.Get("/v1/clinics/:clinicId/reports/realtime", GetPatientsWithRealtimeData, api.RequireAuth),
 	}
@@ -138,6 +139,27 @@ func UpdateSummaries(dataServiceContext dataService.Context) {
 	}
 
 	if err := dataWorkPostprocess.Enqueue(ctx, dataServiceContext.WorkClient(), id, dataWorkPostprocess.ReasonDataAdded); err != nil {
+		responder.InternalServerError(err)
+		return
+	}
+
+	responder.Empty(http.StatusAccepted)
+}
+
+// SyncSummaries sends the summaries of the user to the clinic service again, without
+// recalculating them: one for the standard glycemic ranges, and one for every other
+// glycemic range set the user's patient records use. Backend services call it when the
+// ranges of a patient record change.
+func SyncSummaries(dataServiceContext dataService.Context) {
+	ctx := dataServiceContext.Request().Context()
+	res := dataServiceContext.Response()
+	req := dataServiceContext.Request()
+
+	responder := request.MustNewResponder(res, req)
+
+	id := req.PathParam("userId")
+
+	if err := dataWorkPostprocess.Enqueue(ctx, dataServiceContext.WorkClient(), id, dataWorkPostprocess.ReasonClinicSync); err != nil {
 		responder.InternalServerError(err)
 		return
 	}

@@ -1,6 +1,8 @@
 package clinics_test
 
 import (
+	"math"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -42,10 +44,11 @@ var _ = Describe("NewPatientSummary", func() {
 		Expect(patientSummary.BgmStats.Id).To(PointTo(Equal(bgm.ID.Hex())))
 
 		Expect(patientSummary.CgmStats.Config.SchemaVersion).To(Equal(cgm.Config.SchemaVersion))
+		Expect(patientSummary.CgmStats.Config.GlycemicRangesKey).To(Equal(cgm.Config.GlycemicRangesKey))
 		Expect(patientSummary.CgmStats.Config.HighGlucoseThreshold).To(Equal(cgm.Config.HighGlucoseThreshold))
-		Expect(patientSummary.CgmStats.Config.VeryHighGlucoseThreshold).To(Equal(cgm.Config.VeryHighGlucoseThreshold))
+		Expect(patientSummary.CgmStats.Config.VeryHighGlucoseThreshold).To(PointTo(Equal(cgm.Config.VeryHighGlucoseThreshold)))
 		Expect(patientSummary.CgmStats.Config.LowGlucoseThreshold).To(Equal(cgm.Config.LowGlucoseThreshold))
-		Expect(patientSummary.CgmStats.Config.VeryLowGlucoseThreshold).To(Equal(cgm.Config.VeryLowGlucoseThreshold))
+		Expect(patientSummary.CgmStats.Config.VeryLowGlucoseThreshold).To(PointTo(Equal(cgm.Config.VeryLowGlucoseThreshold)))
 
 		dates := patientSummary.CgmStats.Dates
 		Expect(dates.LastUpdatedDate).To(PointTo(BeTemporally("==", cgm.Dates.LastUpdatedDate)))
@@ -57,6 +60,25 @@ var _ = Describe("NewPatientSummary", func() {
 		Expect(dates.HasLastUploadDate).To(BeTrue())
 		Expect(dates.OutdatedSince).To(BeNil())
 		Expect(dates.HasOutdatedSince).To(BeFalse())
+	})
+
+	// A summary computed for a glycemic range set is never stored, so it has no id
+	It("omits the id of a summary without one", func() {
+		cgm.ID = primitive.ObjectID{}
+		Expect(clinics.NewPatientSummary(cgm, nil).CgmStats.Id).To(BeNil())
+	})
+
+	// A range set without a very low or very high threshold has an infinite cut point
+	// there, which JSON can't carry
+	It("omits the infinite thresholds of the config", func() {
+		cgm.Config.VeryLowGlucoseThreshold = math.Inf(-1)
+		cgm.Config.VeryHighGlucoseThreshold = math.Inf(1)
+
+		config := clinics.NewPatientSummary(cgm, nil).CgmStats.Config
+		Expect(config.VeryLowGlucoseThreshold).To(BeNil())
+		Expect(config.VeryHighGlucoseThreshold).To(BeNil())
+		Expect(config.LowGlucoseThreshold).To(Equal(cgm.Config.LowGlucoseThreshold))
+		Expect(config.HighGlucoseThreshold).To(Equal(cgm.Config.HighGlucoseThreshold))
 	})
 
 	It("omits the dates the summary does not have", func() {

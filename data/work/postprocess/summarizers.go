@@ -16,6 +16,10 @@ type Summarizers interface {
 	// their data, rather than incrementally. The continuous summary doesn't classify
 	// readings by glucose range, so it's only updated.
 	RecalculateSummaries(ctx context.Context, userID string) (SummariesUpdate, error)
+	// SummarizeForRangeSet calculates the CGM and BGM summaries of the user for the range
+	// set, from the buckets of their stored summaries, without storing them. A type is nil
+	// when the user has no stored summary of it.
+	SummarizeForRangeSet(ctx context.Context, userID string, rangeSet summaryTypes.RangeSet) (*summaryTypes.CGMSummary, *summaryTypes.BGMSummary, error)
 }
 
 type SummariesUpdate struct {
@@ -25,8 +29,8 @@ type SummariesUpdate struct {
 	// UpdatedTypes reports each summary type the update created or recalculated
 	UpdatedTypes []string
 
-	// Deleted reports the id of each summary the update deleted, by summary type
-	Deleted map[string]string
+	// DeletedTypes reports each summary type the update deleted.
+	DeletedTypes []string
 }
 
 type summarizers struct {
@@ -46,6 +50,18 @@ func (s *summarizers) UpdateSummaries(ctx context.Context, userID string) (Summa
 
 func (s *summarizers) RecalculateSummaries(ctx context.Context, userID string) (SummariesUpdate, error) {
 	return s.updateOrRecalculateSummaries(ctx, userID, true)
+}
+
+func (s *summarizers) SummarizeForRangeSet(ctx context.Context, userID string, rangeSet summaryTypes.RangeSet) (*summaryTypes.CGMSummary, *summaryTypes.BGMSummary, error) {
+	cgm, err := summary.GetSummarizer[*summaryTypes.CGMPeriods, *summaryTypes.GlucoseBucket](s.registry).SummarizeForRangeSet(ctx, userID, rangeSet)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "unable to summarize %s for range set", summaryTypes.SummaryTypeCGM)
+	}
+	bgm, err := summary.GetSummarizer[*summaryTypes.BGMPeriods, *summaryTypes.GlucoseBucket](s.registry).SummarizeForRangeSet(ctx, userID, rangeSet)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "unable to summarize %s for range set", summaryTypes.SummaryTypeBGM)
+	}
+	return cgm, bgm, nil
 }
 
 // updateOrRecalculateSummaries returns the update made so far even when it reports an
@@ -87,7 +103,7 @@ func updateOrRecalculateSummary[PP summaryTypes.PeriodsPt[P, PB, B], PB summaryT
 
 	if after == nil {
 		if before != nil {
-			update.recordDeleted(summaryType, before.ID.Hex())
+			update.recordDeleted(summaryType)
 		}
 		return nil, nil
 	}
@@ -101,9 +117,6 @@ func (u *SummariesUpdate) recordUpdated(summaryType string) {
 	u.UpdatedTypes = append(u.UpdatedTypes, summaryType)
 }
 
-func (u *SummariesUpdate) recordDeleted(summaryType string, summaryID string) {
-	if u.Deleted == nil {
-		u.Deleted = map[string]string{}
-	}
-	u.Deleted[summaryType] = summaryID
+func (u *SummariesUpdate) recordDeleted(summaryType string) {
+	u.DeletedTypes = append(u.DeletedTypes, summaryType)
 }

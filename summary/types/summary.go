@@ -142,7 +142,7 @@ type ContinuousSummary = Summary[*ContinuousPeriods, *ContinuousBucket, Continuo
 // NewConfig returns the config of a summary of the ADA standard ranges, as the stored
 // summaries are.
 func NewConfig() Config {
-	return NewConfigFor(presetKeyPrefix+PresetADAStandard, StandardCutPoints())
+	return NewConfigFor(StandardRangeSetKey, StandardCutPoints())
 }
 
 // NewConfigFor returns the config of a summary of the range set with the key and cut
