@@ -75,6 +75,13 @@ type Profile struct {
 	Clinic *ClinicProfile `json:"clinic,omitempty"`
 }
 
+// RelaxedProfile is a temporary type that is the same as a Profile
+// except it does NOT validate the diagnosis date, i.e., it allows any value
+// for date and used only within the temporary update route that is only
+// available during migration and will be removed afterwards.
+// TODO: Remove this structure and the route that references once all profiles are migrated.
+type RelaxedProfile Profile
+
 type ClinicProfile struct {
 	Name      *string `json:"name,omitempty"` // Refers to the name of the clinic, not clinician
 	Role      *string `json:"role,omitempty"`
@@ -461,6 +468,24 @@ func (up *Profile) Validate(v structure.Validator) {
 
 	up.Birthday.Validate(v.WithReference("birthday"))
 	up.DiagnosisDate.Validate(v.WithReference("diagnosisDate"))
+	if up.DiagnosisType != "" {
+		v.String("diagnosisType", &up.DiagnosisType).OneOf(DiabetesTypes...)
+	}
+	if up.Clinic != nil {
+		up.Clinic.Validate(v.WithReference("clinic"))
+	}
+}
+
+// Validate satisfies [structure.Validatable]'s Validate method and is the
+// exact same as [Profile.Validate] except it does NOT validate the birthdate
+func (up *RelaxedProfile) Validate(v structure.Validator) {
+	v.String("fullName", &up.FullName).LengthLessThanOrEqualTo(MaxProfileFieldLen)
+	v.String("diagnosisType", &up.DiagnosisType).LengthLessThanOrEqualTo(MaxProfileFieldLen)
+	v.String("targetTimezone", &up.TargetTimezone).LengthLessThanOrEqualTo(MaxProfileFieldLen)
+	v.String("about", &up.About).LengthLessThanOrEqualTo(MaxProfileFieldLen)
+	v.String("mrn", &up.MRN).LengthLessThanOrEqualTo(MaxProfileFieldLen)
+	v.String("biologicalSex", &up.BiologicalSex).LengthLessThanOrEqualTo(MaxProfileFieldLen)
+	up.Birthday.Validate(v.WithReference("birthday"))
 	if up.DiagnosisType != "" {
 		v.String("diagnosisType", &up.DiagnosisType).OneOf(DiabetesTypes...)
 	}

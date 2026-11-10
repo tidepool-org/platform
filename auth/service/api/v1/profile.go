@@ -32,9 +32,11 @@ func (r *Router) ProfileRoutes() []*rest.Route {
 
 		rest.Put("/v1/users/:userId/profile", r.requireCustodian("userId", r.UpdateProfile)),
 		rest.Post("/v1/users/:userId/profile", r.requireCustodian("userId", r.UpdateProfile)),
+		rest.Post("/v1/users/:userId/relaxedprofile", r.requireCustodian("userId", r.UpdateRelaxedProfile)),
 
 		rest.Put("/v1/users/legacy/:userId/profile", r.requireCustodian("userId", r.UpdateLegacyProfile)),
 		rest.Put("/metadata/:userId/profile", r.requireCustodian("userId", r.UpdateLegacyProfile)),
+		rest.Put("/v1/users/:userId/relaxedprofile", r.requireCustodian("userId", r.UpdateRelaxedProfile)),
 
 		rest.Post("/v1/users/legacy/:userId/profile", r.requireCustodian("userId", r.UpdateLegacyProfile)),
 		rest.Post("/metadata/:userId/profile", r.requireCustodian("userId", r.UpdateLegacyProfile)),
@@ -229,6 +231,24 @@ func (r *Router) UpdateProfile(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 	if err := r.ProfileAccessor().UpdateUserProfile(ctx, userID, profile); err != nil {
+		r.handleUserOrProfileErr(responder, err)
+		return
+	}
+	responder.Data(http.StatusOK, profile)
+}
+
+func (r *Router) UpdateRelaxedProfile(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+	ctx := req.Context()
+	userID := req.PathParam("userId")
+	// Decode into type RelaxedProfile for this type to allow for "bad" dates.
+	tempProfile := &user.RelaxedProfile{}
+	if err := request.DecodeRequestBody(req.Request, tempProfile); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+	profile := user.Profile(*tempProfile)
+	if err := r.ProfileAccessor().UpdateUserProfile(ctx, userID, &profile); err != nil {
 		r.handleUserOrProfileErr(responder, err)
 		return
 	}
