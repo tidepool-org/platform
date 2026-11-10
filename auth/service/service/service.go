@@ -24,6 +24,8 @@ import (
 	authServiceApiV1 "github.com/tidepool-org/platform/auth/service/api/v1"
 	authStore "github.com/tidepool-org/platform/auth/store"
 	authStoreMongo "github.com/tidepool-org/platform/auth/store/mongo"
+	"github.com/tidepool-org/platform/cluster"
+	clusterFlux "github.com/tidepool-org/platform/cluster/flux"
 	"github.com/tidepool-org/platform/consent"
 	consentApiV1 "github.com/tidepool-org/platform/consent/api/v1"
 	consentLoader "github.com/tidepool-org/platform/consent/loader"
@@ -81,6 +83,7 @@ type Service struct {
 	appValidator                   *appvalidate.Validator
 	authClient                     *Client
 	authStore                      *authStoreMongo.Store
+	clusterReleaseReporter         cluster.ReleaseReporter
 	confirmationClient             confirmationClient.ClientWithResponsesInterface
 	customerIOClient               *customerio.Client
 	dataClient                     dataClient.Client
@@ -175,6 +178,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeTwiistServiceAccountAuthorizer(); err != nil {
 		return err
 	}
+	if err := s.initializeClusterReleaseReporter(); err != nil {
+		return err
+	}
 	if err := s.initializeCustomerIOClient(); err != nil {
 		return err
 	}
@@ -261,6 +267,10 @@ func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
 
 func (s *Service) TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer {
 	return s.twiistServiceAccountAuthorizer
+}
+
+func (s *Service) ClusterReleaseReporter() cluster.ReleaseReporter {
+	return s.clusterReleaseReporter
 }
 
 func (s *Service) Status(ctx context.Context) *authService.Status {
@@ -869,6 +879,14 @@ func (s *Service) initializeTwiistServiceAccountAuthorizer() error {
 		return errors.Wrap(err, "unable to initialize twiist service account authorizer")
 	}
 	s.twiistServiceAccountAuthorizer = twiistServiceAccountAuthorizer
+
+	return nil
+}
+
+func (s *Service) initializeClusterReleaseReporter() error {
+	s.Logger().Debug("Initializing cluster release reporter")
+
+	s.clusterReleaseReporter = clusterFlux.NewInClusterReleaseReporter(s.UserAgent())
 
 	return nil
 }
