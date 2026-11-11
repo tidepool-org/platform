@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	CarbohydrateRatioStartAmountMaximum = 250.0
+	CarbohydrateRatioStartAmountMaximum = 500.0
 	CarbohydrateRatioStartAmountMinimum = 0.0
 	CarbohydrateRatioStartStartMaximum  = 86400000
 	CarbohydrateRatioStartStartMinimum  = 0
