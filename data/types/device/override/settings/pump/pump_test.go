@@ -448,19 +448,26 @@ var _ = Describe("Pump", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
 				),
-				Entry("duration expected; out of range (lower)",
+				Entry("duration expected; less than duration",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesDeviceOverrideSettingsPump.Pump, unitsBloodGlucose *string) {
 						datum.Duration = pointer.FromInt(3600)
 						datum.DurationExpected = pointer.FromInt(3599)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(3599, 3600, 604800000), "/expectedDuration", NewMeta()),
+				),
+				Entry("duration expected; out of range (lower)",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesDeviceOverrideSettingsPump.Pump, unitsBloodGlucose *string) {
+						datum.Duration = pointer.FromInt(3600)
+						datum.DurationExpected = pointer.FromInt(-1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration expected; in range (lower)",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesDeviceOverrideSettingsPump.Pump, unitsBloodGlucose *string) {
 						datum.Duration = pointer.FromInt(3600)
-						datum.DurationExpected = pointer.FromInt(3600)
+						datum.DurationExpected = pointer.FromInt(0)
 					},
 				),
 				Entry("duration expected; in range (upper)",
@@ -476,7 +483,7 @@ var _ = Describe("Pump", func() {
 						datum.Duration = pointer.FromInt(3600)
 						datum.DurationExpected = pointer.FromInt(604800001)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 3600, 604800000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("units mmol/L; blood glucose target missing",
 					pointer.FromString("mmol/L"),
