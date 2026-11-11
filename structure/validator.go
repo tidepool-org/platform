@@ -25,6 +25,7 @@ type Validator interface {
 	Bool(reference string, value *bool) Bool
 	Float64(reference string, value *float64) Float64
 	Int(reference string, value *int) Int
+	Int64(reference string, value *int64) Int64
 	String(reference string, value *string) String
 	StringArray(reference string, value *[]string) StringArray
 	Time(reference string, value *time.Time) Time
@@ -92,6 +93,27 @@ type Int interface {
 	NotOneOf(disallowedValues ...int) Int
 
 	Using(usingFunc IntUsingFunc) Int
+}
+
+type Int64UsingFunc func(value int64, errorReporter ErrorReporter)
+
+type Int64 interface {
+	Exists() Int64
+	NotExists() Int64
+
+	EqualTo(value int64) Int64
+	NotEqualTo(value int64) Int64
+
+	LessThan(limit int64) Int64
+	LessThanOrEqualTo(limit int64) Int64
+	GreaterThan(limit int64) Int64
+	GreaterThanOrEqualTo(limit int64) Int64
+	InRange(lowerLimit int64, upperLimit int64) Int64
+
+	OneOf(allowedValues ...int64) Int64
+	NotOneOf(disallowedValues ...int64) Int64
+
+	Using(usingFunc Int64UsingFunc) Int64
 }
 
 type StringUsingFunc func(value string, errorReporter ErrorReporter)

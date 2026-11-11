@@ -5,6 +5,7 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	authClient "github.com/tidepool-org/platform/auth/client"
 	"github.com/tidepool-org/platform/errors"
+	logSarama "github.com/tidepool-org/platform/log/sarama"
 	"github.com/tidepool-org/platform/platform"
 )
 
@@ -25,6 +26,9 @@ func (d *DEPRECATEDService) Initialize(provider application.Provider) error {
 		return err
 	}
 
+	if err := logSarama.Setup(d.Logger()); err != nil {
+		return errors.Wrap(err, "unable to setup sarama logger")
+	}
 	if err := d.initializeSecret(); err != nil {
 		return err
 	}

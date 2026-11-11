@@ -117,7 +117,15 @@ func ErrorValueIntOneOf(value int, disallowedValues []int) error {
 	return errors.Preparedf(ErrorCodeValueDisallowed, "value is one of the disallowed values", "value %s is one of %s", stringify(value), stringify(disallowedValues))
 }
 
+func ErrorValueInt64OneOf(value int64, disallowedValues []int64) error {
+	return errors.Preparedf(ErrorCodeValueDisallowed, "value is one of the disallowed values", "value %s is one of %s", stringify(value), stringify(disallowedValues))
+}
+
 func ErrorValueIntNotOneOf(value int, allowedValues []int) error {
+	return errors.Preparedf(ErrorCodeValueNotAllowed, "value is not one of the allowed values", "value %s is not one of %s", stringify(value), stringify(allowedValues))
+}
+
+func ErrorValueInt64NotOneOf(value int64, allowedValues []int64) error {
 	return errors.Preparedf(ErrorCodeValueNotAllowed, "value is not one of the allowed values", "value %s is not one of %s", stringify(value), stringify(allowedValues))
 }
 

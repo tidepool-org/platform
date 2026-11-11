@@ -97,12 +97,7 @@ func (s *Status) Validate(validator structure.Validator) {
 	}
 
 	validator.Int("duration", s.Duration).GreaterThanOrEqualTo(DurationMinimum) // TODO: .Exists() - Suspend events on Animas do not have duration?
-	expectedDurationValidator := validator.Int("expectedDuration", s.DurationExpected)
-	if s.Duration != nil && *s.Duration >= DurationMinimum {
-		expectedDurationValidator.GreaterThanOrEqualTo(*s.Duration)
-	} else {
-		expectedDurationValidator.GreaterThanOrEqualTo(DurationMinimum)
-	}
+	validator.Int("expectedDuration", s.DurationExpected).GreaterThanOrEqualTo(DurationMinimum)
 	validator.String("status", s.Name).Exists().OneOf(Names()...)
 
 	reasonValidator := validator.WithReference("reason")

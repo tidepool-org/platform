@@ -110,12 +110,7 @@ func (p *Pump) Validate(validator structure.Validator) {
 	}
 	validator.String("method", p.Method).OneOf(Methods()...)
 	validator.Int("duration", p.Duration).InRange(DurationMinimum, DurationMaximum)
-	expectedDurationValidator := validator.Int("expectedDuration", p.DurationExpected)
-	if p.Duration != nil && *p.Duration >= DurationMinimum && *p.Duration <= DurationMaximum {
-		expectedDurationValidator.InRange(*p.Duration, DurationMaximum)
-	} else {
-		expectedDurationValidator.InRange(DurationMinimum, DurationMaximum)
-	}
+	validator.Int("expectedDuration", p.DurationExpected).InRange(DurationMinimum, DurationMaximum)
 	if p.BloodGlucoseTarget != nil {
 		p.BloodGlucoseTarget.Validate(validator.WithReference("bgTarget"), unitsBloodGlucose)
 	}

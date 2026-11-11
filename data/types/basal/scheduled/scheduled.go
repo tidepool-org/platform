@@ -60,12 +60,7 @@ func (s *Scheduled) Validate(validator structure.Validator) {
 	}
 
 	validator.Int("duration", s.Duration).Exists().InRange(DurationMinimum, DurationMaximum)
-	expectedDurationValidator := validator.Int("expectedDuration", s.DurationExpected)
-	if s.Duration != nil && *s.Duration >= DurationMinimum && *s.Duration <= DurationMaximum {
-		expectedDurationValidator.InRange(*s.Duration, DurationMaximum)
-	} else {
-		expectedDurationValidator.InRange(DurationMinimum, DurationMaximum)
-	}
+	validator.Int("expectedDuration", s.DurationExpected).InRange(DurationMinimum, DurationMaximum)
 	if s.InsulinFormulation != nil {
 		s.InsulinFormulation.Validate(validator.WithReference("insulinFormulation"))
 	}
