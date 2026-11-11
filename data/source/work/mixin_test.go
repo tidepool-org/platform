@@ -640,21 +640,21 @@ var _ = Describe("mixin", func() {
 
 				It("returns failed result after SetDataSource is called with a data source without a data set id", func() {
 					dataSrc := randomDataSourceWithMockMetadata()
-					dataSrc.DataSetID = nil
+					dataSrc.DataSetIDs = nil
 					Expect(mixin.SetDataSource(dataSrc)).To(BeNil())
 					Expect(mixin.EnsureDataSourceHasDataSetID()).To(workTest.MatchFailedProcessResultError(MatchError("data source data set id is missing")))
 				})
 
 				It("returns nil after SetDataSource is called with a data source with a data set id", func() {
 					dataSrc := randomDataSourceWithMockMetadata()
-					dataSrc.DataSetID = pointer.From(dataTest.RandomDataSetID())
+					dataSrc.DataSetIDs = pointer.From(dataTest.RandomDataSetIDs())
 					Expect(mixin.SetDataSource(dataSrc)).To(BeNil())
 					Expect(mixin.EnsureDataSourceHasDataSetID()).To(BeNil())
 				})
 
 				It("returns failed result after SetDataSource is called with nil", func() {
 					dataSrc := randomDataSourceWithMockMetadata()
-					dataSrc.DataSetID = pointer.From(dataTest.RandomDataSetID())
+					dataSrc.DataSetIDs = pointer.From(dataTest.RandomDataSetIDs())
 					Expect(mixin.SetDataSource(dataSrc)).To(BeNil())
 					Expect(mixin.EnsureDataSourceHasDataSetID()).To(BeNil())
 					Expect(mixin.SetDataSource(nil)).To(BeNil())
@@ -683,7 +683,7 @@ var _ = Describe("mixin", func() {
 							"providerSessionId":  dataSrc.ProviderSessionID,
 							"state":              dataSrc.State,
 							"metadata":           dataSrc.Metadata,
-							"dataSetId":          dataSrc.DataSetID,
+							"dataSetIds":         dataSrc.DataSetIDs,
 						},
 						"dataSourceMetadata": dataSrcMetadata,
 					}))

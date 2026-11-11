@@ -207,7 +207,7 @@ func (p *Provider) prepareDataSource(ctx context.Context, providerSession *auth.
 }
 
 func (p *Provider) prepareDataSet(ctx context.Context, dataSrc *dataSource.Source) error {
-	if dataSrc.DataSetID != nil {
+	if dataSrc.LastDataSetID() != nil {
 		return nil
 	}
 
@@ -216,7 +216,7 @@ func (p *Provider) prepareDataSet(ctx context.Context, dataSrc *dataSource.Sourc
 		return errors.Wrap(err, "unable to create data set")
 	}
 
-	dataSrc.DataSetID = dataSet.ID
+	dataSrc.AddDataSetID(pointer.To(dataSet.ID))
 
 	return nil
 }
@@ -231,7 +231,7 @@ func (p *Provider) connectDataSource(ctx context.Context, providerSession *auth.
 	}
 
 	dataSrcUpdate := &dataSource.Update{
-		DataSetID:          dataSrc.DataSetID,
+		DataSetIDs:         dataSrc.DataSetIDs,
 		ProviderExternalID: dataSrc.ProviderExternalID,
 		ProviderSessionID:  pointer.FromString(providerSession.ID),
 		State:              pointer.FromString(dataSource.StateConnected),

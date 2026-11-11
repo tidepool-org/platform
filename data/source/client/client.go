@@ -11,6 +11,7 @@ import (
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
 )
@@ -51,12 +52,12 @@ func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Fil
 	}
 
 	url := c.client.ConstructURL("v1", "users", userID, "data_sources")
-	result := dataSource.SourceArray{}
+	result := sourceArrayDEPRECATED{}
 	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &result); err != nil {
 		return nil, err
 	}
 
-	return result, nil
+	return result.Modernize(), nil
 }
 
 func (c *Client) Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error) {
@@ -75,12 +76,12 @@ func (c *Client) Create(ctx context.Context, userID string, create *dataSource.C
 	}
 
 	url := c.client.ConstructURL("v1", "users", userID, "data_sources")
-	result := &dataSource.Source{}
+	result := &sourceDEPRECATED{}
 	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, create, result); err != nil {
 		return nil, err
 	}
 
-	return result, nil
+	return result.Modernize(), nil
 }
 
 func (c *Client) DeleteAll(ctx context.Context, userID string) error {
@@ -108,7 +109,7 @@ func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error)
 	}
 
 	url := c.client.ConstructURL("v1", "data_sources", id)
-	result := &dataSource.Source{}
+	result := &sourceDEPRECATED{}
 	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, result); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
@@ -116,7 +117,7 @@ func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error)
 		return nil, err
 	}
 
-	return result, nil
+	return result.Modernize(), nil
 }
 
 func (c *Client) Update(ctx context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
@@ -140,7 +141,7 @@ func (c *Client) Update(ctx context.Context, id string, condition *request.Condi
 	}
 
 	url := c.client.ConstructURL("v1", "data_sources", id)
-	result := &dataSource.Source{}
+	result := &sourceDEPRECATED{}
 	if err := c.client.RequestData(ctx, http.MethodPut, url, []request.RequestMutator{condition}, update, result); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
@@ -148,7 +149,7 @@ func (c *Client) Update(ctx context.Context, id string, condition *request.Condi
 		return nil, err
 	}
 
-	return result, nil
+	return result.Modernize(), nil
 }
 
 func (c *Client) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
@@ -188,7 +189,7 @@ func (c *Client) GetFromProviderSession(ctx context.Context, providerSessionID s
 	}
 
 	url := c.client.ConstructURL("v1", "provider_sessions", providerSessionID, "data_source")
-	result := &dataSource.Source{}
+	result := &sourceDEPRECATED{}
 	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, result); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
@@ -196,5 +197,37 @@ func (c *Client) GetFromProviderSession(ctx context.Context, providerSessionID s
 		return nil, err
 	}
 
-	return result, nil
+	return result.Modernize(), nil
+}
+
+// sourceDEPRECATED reads the single dataSetId a data service built before dataSetIds returned (2026-10) sends
+// in place of dataSetIds, so the services can be deployed in any order. Remove once every data service sends
+// dataSetIds.
+type sourceDEPRECATED struct {
+	dataSource.Source `bson:",inline"`
+
+	DataSetID *string `json:"dataSetId,omitempty" bson:"dataSetId,omitempty"`
+}
+
+// Parse parses the data set id itself, as the parser would otherwise use the Source's Parse, which skips it.
+func (s *sourceDEPRECATED) Parse(parser structure.ObjectParser) {
+	s.Source.Parse(parser)
+	s.DataSetID = parser.String("dataSetId")
+}
+
+func (s *sourceDEPRECATED) Modernize() *dataSource.Source {
+	if s.DataSetID != nil {
+		s.AddDataSetID(*s.DataSetID)
+	}
+	return &s.Source
+}
+
+type sourceArrayDEPRECATED []*sourceDEPRECATED
+
+func (s sourceArrayDEPRECATED) Modernize() dataSource.SourceArray {
+	sources := make(dataSource.SourceArray, len(s))
+	for index, source := range s {
+		sources[index] = source.Modernize()
+	}
+	return sources
 }
