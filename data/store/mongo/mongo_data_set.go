@@ -178,11 +178,24 @@ func (d *DataSetRepository) updateDataSet(ctx context.Context, id string, update
 	if update.TimeZoneOffset != nil {
 		set["timezoneOffset"] = *update.TimeZoneOffset
 	}
+	if update.Metadata != nil {
+		set["metadata"] = *update.Metadata
+	}
+	selector := bson.M{"uploadId": id}
+	if update.Condition != nil && update.Condition.Revision != nil {
+		if revision := *update.Condition.Revision; revision == 0 {
+			selector["revision"] = bson.M{"$in": bson.A{0, nil}} // A data set never written by the platform has no revision
+		} else {
+			selector["revision"] = revision
+		}
+	}
 	opts := options.Update().SetUpsert(false) // Can only update an existing document
-	changeInfo, err := d.UpdateMany(ctx, bson.M{"uploadId": id}, d.ConstructUpdate(set, unset), opts)
+	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset), opts)
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DataSetRepository.UpdateDataSet")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to upsert data set")
+	} else if update.Condition != nil && changeInfo.MatchedCount == 0 {
+		return nil, nil
 	}
 
 	return d.GetDataSet(ctx, id)

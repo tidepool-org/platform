@@ -16,12 +16,15 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
+	"github.com/tidepool-org/platform/data"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/platform"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
@@ -83,6 +86,24 @@ var _ = Describe("Client", func() {
 			if server != nil {
 				server.Close()
 			}
+		})
+
+		Context("UpdateDataSet", func() {
+			It("returns an error without a request when the update has metadata", func() {
+				update := &data.DataSetUpdate{Metadata: metadataTest.RandomMetadataMapPointer()}
+				result, err := clnt.UpdateDataSet(ctx, dataTest.RandomDataSetID(), update)
+				Expect(err).To(MatchError("update with metadata or condition is not supported"))
+				Expect(result).To(BeNil())
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
+
+			It("returns an error without a request when the update has a condition", func() {
+				update := &data.DataSetUpdate{State: pointer.FromString("closed"), Condition: data.NewDataSetConditionWithRevision(pointer.FromInt(1))}
+				result, err := clnt.UpdateDataSet(ctx, dataTest.RandomDataSetID(), update)
+				Expect(err).To(MatchError("update with metadata or condition is not supported"))
+				Expect(result).To(BeNil())
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
 		})
 
 		Context("DestroyDataForUserByID", func() {

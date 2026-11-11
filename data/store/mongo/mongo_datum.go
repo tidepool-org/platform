@@ -2,7 +2,7 @@ package mongo
 
 import (
 	"context"
-	"errors"
+	stdErrors "errors"
 	"fmt"
 	"time"
 
@@ -16,9 +16,11 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/dosingdecision"
-	platerrors "github.com/tidepool-org/platform/errors"
+	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/summary/types"
 )
@@ -112,6 +114,17 @@ func (d *DatumRepository) EnsureIndexes() error {
 					{Key: "origin.id", Value: bson.D{{Key: "$exists", Value: true}}},
 				}).
 				SetName("UserIdOriginId"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "_userId", Value: 1},
+				{Key: "revisions.provenance.dataRaw.id", Value: 1},
+			},
+			Options: options.Index().
+				SetPartialFilterExpression(bson.D{
+					{Key: "revisions", Value: bson.D{{Key: "$exists", Value: true}}},
+				}).
+				SetName("UserIdRevisionsProvenanceDataRawId"),
 		},
 		// Future optimization after release.
 		// Rebuild index to move _active
@@ -420,6 +433,185 @@ func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *data.
 	return nil
 }
 
+func (d *DatumRepository) GetFirstDataSetDatum(ctx context.Context, dataSet *data.DataSet, filter *data.DatumFilter, sort *data.DatumSort) (data.Datum, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if err := validateDataSet(dataSet); err != nil {
+		return nil, err
+	}
+	if filter == nil {
+		return nil, errors.New("filter is missing")
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
+		return nil, errors.Wrap(err, "filter is invalid")
+	}
+	if sort == nil {
+		return nil, errors.New("sort is missing")
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(sort); err != nil {
+		return nil, errors.Wrap(err, "sort is invalid")
+	}
+	direction := 1
+	if *sort.Direction == data.DatumSortDirectionDescending {
+		direction = -1
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"dataSetId": *dataSet.UploadID, "filter": filter, "sort": sort})
+
+	// The user, active and type select the UserIdTypeWeighted_v2 index, which is sorted by time
+	selector := bson.M{
+		"_userId":     dataSet.UserID,
+		"_active":     true,
+		"type":        *filter.Type,
+		"uploadId":    dataSet.UploadID,
+		"deletedTime": bson.M{"$exists": false},
+	}
+	if filter.SubType != nil {
+		selector["subType"] = *filter.SubType
+	}
+	if filter.Time != nil {
+		timeSelector := bson.M{}
+		if filter.Time.From != nil {
+			timeSelector["$gte"] = *filter.Time.From
+		}
+		if filter.Time.To != nil {
+			timeSelector["$lte"] = *filter.Time.To
+		}
+		if len(timeSelector) > 0 {
+			selector["time"] = timeSelector
+		}
+	}
+	raw, err := d.FindOne(ctx, selector, options.FindOne().SetSort(bson.D{{Key: *sort.Field, Value: direction}})).Raw()
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, nil
+	} else if err != nil {
+		logger.WithError(err).Error("Unable to get first data set datum")
+		return nil, fmt.Errorf("unable to get first data set datum: %w", err)
+	}
+
+	datum, err := decodeDatum(ctx, dataSet, raw)
+	if err != nil {
+		logger.WithError(err).Error("Unable to decode first data set datum")
+		return nil, fmt.Errorf("unable to decode first data set datum: %w", err)
+	}
+
+	logger.WithField("duration", time.Since(now)/time.Microsecond).Debug("GetFirstDataSetDatum")
+	return datum, nil
+}
+
+// decodeDatum parses a stored datum as data from a client is parsed: the stored document does not say which type
+// fills a field declared as an interface, such as the suppressed basal of an automated basal, but the parser does.
+func decodeDatum(ctx context.Context, dataSet *data.DataSet, raw bson.Raw) (data.Datum, error) {
+	object, err := storeStructuredMongo.DecodeDocument(raw)
+	if err != nil {
+		return nil, err
+	}
+
+	parser := structureParser.NewObject(log.LoggerFromContext(ctx), &object)
+	datum := dataTypesFactory.ParseDatum(parser)
+	if err = parser.Error(); err != nil {
+		return nil, err
+	} else if datum == nil || *datum == nil {
+		return nil, errors.New("datum is missing")
+	}
+	(*datum).SetUserID(dataSet.UserID)
+	(*datum).SetDataSetID(dataSet.UploadID)
+	return *datum, nil
+}
+
+func (d *DatumRepository) GetDataSetDocuments(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) ([]map[string]any, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if err := validateDataSet(dataSet); err != nil {
+		return nil, err
+	}
+	if selectors == nil {
+		return nil, errors.New("selectors is missing")
+	}
+	selector, _, err := validateAndTranslateSelectors(ctx, selectors)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
+
+	selector["_userId"] = dataSet.UserID
+	selector["uploadId"] = dataSet.UploadID
+	selector["deletedTime"] = bson.M{"$exists": false}
+
+	cursor, err := d.Find(ctx, selector)
+	if err != nil {
+		logger.WithError(err).Error("Unable to get data set documents")
+		return nil, fmt.Errorf("unable to get data set documents: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	documents := []map[string]any{}
+	for cursor.Next(ctx) {
+		document, err := storeStructuredMongo.DecodeDocument(cursor.Current)
+		if err != nil {
+			logger.WithError(err).Error("Unable to decode data set document")
+			return nil, fmt.Errorf("unable to decode data set document: %w", err)
+		}
+		documents = append(documents, document)
+	}
+	if err = cursor.Err(); err != nil {
+		logger.WithError(err).Error("Unable to get data set documents")
+		return nil, fmt.Errorf("unable to get data set documents: %w", err)
+	}
+
+	logger.WithFields(log.Fields{"count": len(documents), "duration": time.Since(now) / time.Microsecond}).Debug("GetDataSetDocuments")
+	return documents, nil
+}
+
+func (d *DatumRepository) UpdateDataSetDatum(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors, update bson.M) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if err := validateDataSet(dataSet); err != nil {
+		return err
+	}
+	selector, err := validateAndTranslateDatumSelector(ctx, selectors)
+	if err != nil {
+		return err
+	}
+	if len(update) == 0 {
+		return errors.New("update is missing")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"dataSetId": *dataSet.UploadID, "selector": selector})
+
+	selector["_userId"] = dataSet.UserID
+	selector["uploadId"] = dataSet.UploadID
+	stamped := bson.M{}
+	for key, value := range update {
+		stamped[key] = value
+	}
+	set := bson.M{}
+	if existing, ok := stamped["$set"].(bson.M); ok {
+		for key, value := range existing {
+			set[key] = value
+		}
+	}
+	set["modifiedTime"] = now.UTC().Truncate(time.Millisecond)
+	stamped["$set"] = set
+	stamped["$inc"] = bson.M{"_version": 1}
+
+	result, err := d.UpdateOne(ctx, selector, stamped)
+	if err != nil {
+		logger.WithError(err).Error("Unable to update data set datum")
+		return fmt.Errorf("unable to update data set datum: %w", err)
+	}
+	logger.WithFields(log.Fields{"matchedCount": result.MatchedCount, "duration": time.Since(now) / time.Microsecond}).Debug("UpdateDataSetDatum")
+	if result.MatchedCount == 0 {
+		return store.ErrorDatumUpdateConflict()
+	}
+	return nil
+}
+
 func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
@@ -582,16 +774,43 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 // origin.time to time.Time and add additional qualifiers to the database selector that document origin.time must be
 // greater than or equal to the incoming selector origin.time. For now, we can only query on id and origin.id.
 // See: https://tidepool.atlassian.net/browse/BACK-3548
-func validateAndTranslateSelectors(ctx context.Context, selectors *data.Selectors) (bson.M, bool, error) {
+// validateAndTranslateDatumSelector translates the one selector that identifies a datum to update: its origin id,
+// and the version it was read at when given, where zero matches a document without a version as well as an
+// explicit zero.
+func validateAndTranslateDatumSelector(ctx context.Context, selectors *data.Selectors) (bson.M, error) {
+	if selectors == nil {
+		return nil, errors.New("selectors is missing")
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(selectors); err != nil {
+		return nil, stdErrors.Join(ErrSelectorsInvalid, err)
+	} else if len(*selectors) != 1 {
+		return nil, errors.New("selectors is invalid, exactly one selector allowed")
+	}
+	selector := (*selectors)[0]
+	if selector.Origin == nil || selector.Origin.ID == nil {
+		return nil, errors.New("selectors is invalid, only an origin selector allowed")
+	}
+	filter := bson.M{"origin.id": *selector.Origin.ID}
+	if selector.Version != nil {
+		if *selector.Version > 0 {
+			filter["_version"] = *selector.Version
+		} else {
+			filter["_version"] = bson.M{"$in": bson.A{nil, 0}}
+		}
+	}
+	return filter, nil
+}
+
+func validateAndTranslateSelectors(ctx context.Context, selectors *data.Selectors) (filter bson.M, hasOriginID bool, err error) {
 	if selectors == nil {
 		return bson.M{}, false, nil
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(selectors); err != nil {
-		return nil, false, errors.Join(ErrSelectorsInvalid, err)
+		return nil, false, stdErrors.Join(ErrSelectorsInvalid, err)
 	}
 
 	var selectorIDs []string
 	var selectorDeduplicatorHashes []string
 	var selectorOriginIDs []string
+	var selectorDataRawIDs []string
 	for _, selector := range *selectors {
 		if selector != nil {
 			if selector.ID != nil {
@@ -600,6 +819,8 @@ func validateAndTranslateSelectors(ctx context.Context, selectors *data.Selector
 				selectorDeduplicatorHashes = append(selectorDeduplicatorHashes, *selector.Deduplicator.Hash)
 			} else if selector.Origin != nil && selector.Origin.ID != nil {
 				selectorOriginIDs = append(selectorOriginIDs, *selector.Origin.ID)
+			} else if selector.DataRaw != nil && selector.DataRaw.ID != nil {
+				selectorDataRawIDs = append(selectorDataRawIDs, *selector.DataRaw.ID)
 			}
 		}
 	}
@@ -613,6 +834,10 @@ func validateAndTranslateSelectors(ctx context.Context, selectors *data.Selector
 	}
 	if len(selectorOriginIDs) > 0 {
 		filters = append(filters, bson.M{"origin.id": bson.M{"$in": selectorOriginIDs}})
+	}
+	if len(selectorDataRawIDs) > 0 {
+		// The revisions existence predicate lets the planner use the partial index
+		filters = append(filters, bson.M{"revisions": bson.M{"$exists": true}, "revisions.provenance.dataRaw.id": bson.M{"$in": selectorDataRawIDs}})
 	}
 
 	switch len(filters) {
@@ -699,8 +924,8 @@ func (d *DatumRepository) GetAlertableData(ctx context.Context, params store.Ale
 		return nil, err
 	}
 	dosingDecisions := []*dosingdecision.DosingDecision{}
-	if err = cursor.All(ctx, &dosingDecisions); err != nil {
-		return nil, platerrors.Wrap(err, "Unable to load alertable dosing documents")
+	if err := cursor.All(ctx, &dosingDecisions); err != nil {
+		return nil, errors.Wrap(err, "Unable to load alertable dosing documents")
 	}
 	cursor, err = d.getAlertableData(ctx, params, continuous.Type)
 	if err != nil {
@@ -708,7 +933,7 @@ func (d *DatumRepository) GetAlertableData(ctx context.Context, params store.Ale
 	}
 	glucoseData := []*glucose.Glucose{}
 	if err := cursor.All(ctx, &glucoseData); err != nil {
-		return nil, platerrors.Wrap(err, "Unable to load alertable glucose documents")
+		return nil, errors.Wrap(err, "Unable to load alertable glucose documents")
 	}
 	response := &store.AlertableResponse{
 		DosingDecisions: dosingDecisions,
@@ -730,7 +955,7 @@ func (d *DatumRepository) getAlertableData(ctx context.Context, params store.Ale
 	cursor, err := d.Find(ctx, selector, findOptions)
 	if err != nil {
 		format := "Unable to find alertable %s data in dataset %s"
-		return nil, platerrors.Wrapf(err, format, typ, params.UploadID)
+		return nil, errors.Wrapf(err, format, typ, params.UploadID)
 	}
 	return cursor, nil
 }

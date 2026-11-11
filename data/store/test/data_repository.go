@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/onsi/gomega"
@@ -147,6 +148,36 @@ type ListUserDataSetsOutput struct {
 	Error    error
 }
 
+type GetDataSetDocumentsInput struct {
+	Context   context.Context
+	DataSet   *data.DataSet
+	Selectors *data.Selectors
+}
+
+type GetDataSetDocumentsOutput struct {
+	Documents []map[string]any
+	Error     error
+}
+
+type UpdateDataSetDatumInput struct {
+	Context   context.Context
+	DataSet   *data.DataSet
+	Selectors *data.Selectors
+	Update    bson.M
+}
+
+type GetFirstDataSetDatumInput struct {
+	Context context.Context
+	DataSet *data.DataSet
+	Filter  *data.DatumFilter
+	Sort    *data.DatumSort
+}
+
+type GetFirstDataSetDatumOutput struct {
+	Datum data.Datum
+	Error error
+}
+
 type GetLastUpdatedForUserInput struct {
 	Context     context.Context
 	UserID      string
@@ -253,6 +284,17 @@ type DataRepository struct {
 	GetDataRangeInvocations int
 	GetDataRangeInputs      []GetDataRangeInput
 	GetDataRangeOutputs     []GetDataRangeOutput
+
+	GetFirstDataSetDatumInvocations int
+	GetFirstDataSetDatumInputs      []GetFirstDataSetDatumInput
+	GetFirstDataSetDatumOutputs     []GetFirstDataSetDatumOutput
+
+	GetDataSetDocumentsInvocations int
+	GetDataSetDocumentsInputs      []GetDataSetDocumentsInput
+	GetDataSetDocumentsOutputs     []GetDataSetDocumentsOutput
+	UpdateDataSetDatumInvocations  int
+	UpdateDataSetDatumInputs       []UpdateDataSetDatumInput
+	UpdateDataSetDatumOutputs      []error
 
 	GetLastUpdatedForUserInvocations int
 	GetLastUpdatedForUserInputs      []GetLastUpdatedForUserInput
@@ -498,6 +540,42 @@ func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataS
 	return output.DataSet, output.Error
 }
 
+func (d *DataRepository) GetFirstDataSetDatum(ctx context.Context, dataSet *data.DataSet, filter *data.DatumFilter, sort *data.DatumSort) (data.Datum, error) {
+	d.GetFirstDataSetDatumInvocations++
+
+	d.GetFirstDataSetDatumInputs = append(d.GetFirstDataSetDatumInputs, GetFirstDataSetDatumInput{Context: ctx, DataSet: dataSet, Filter: filter, Sort: sort})
+
+	gomega.Expect(d.GetFirstDataSetDatumOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetFirstDataSetDatumOutputs[0]
+	d.GetFirstDataSetDatumOutputs = d.GetFirstDataSetDatumOutputs[1:]
+	return output.Datum, output.Error
+}
+
+func (d *DataRepository) GetDataSetDocuments(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) ([]map[string]any, error) {
+	d.GetDataSetDocumentsInvocations++
+
+	d.GetDataSetDocumentsInputs = append(d.GetDataSetDocumentsInputs, GetDataSetDocumentsInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
+
+	gomega.Expect(d.GetDataSetDocumentsOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetDataSetDocumentsOutputs[0]
+	d.GetDataSetDocumentsOutputs = d.GetDataSetDocumentsOutputs[1:]
+	return output.Documents, output.Error
+}
+
+func (d *DataRepository) UpdateDataSetDatum(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors, update bson.M) error {
+	d.UpdateDataSetDatumInvocations++
+
+	d.UpdateDataSetDatumInputs = append(d.UpdateDataSetDatumInputs, UpdateDataSetDatumInput{Context: ctx, DataSet: dataSet, Selectors: selectors, Update: update})
+
+	gomega.Expect(d.UpdateDataSetDatumOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.UpdateDataSetDatumOutputs[0]
+	d.UpdateDataSetDatumOutputs = d.UpdateDataSetDatumOutputs[1:]
+	return output
+}
+
 func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error) {
 	d.GetLastUpdatedForUserInvocations++
 
@@ -565,6 +643,9 @@ func (d *DataRepository) Expectations() {
 	gomega.Expect(d.DestroyDataForUserByIDOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.ListUserDataSetsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetFirstDataSetDatumOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetDataSetDocumentsOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.UpdateDataSetDatumOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetLastUpdatedForUserOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetUsersWithBGDataSinceOutputs).To(gomega.BeEmpty())
 }
