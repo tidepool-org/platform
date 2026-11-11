@@ -73,6 +73,7 @@ func CloneConfig(config *oauthProvider.Config) *oauthProvider.Config {
 		CookieDisabled:    config.CookieDisabled,
 		StateSalt:         pointer.Clone(config.StateSalt),
 		ClientTimeout:     config.ClientTimeout,
+		PKCEEnabled:       config.PKCEEnabled,
 	}
 }
 

@@ -39,17 +39,21 @@ FROM platform-base-golang AS platform-init
 WORKDIR /build
 COPY Makefile go.* ./
 COPY plugin/abbott/go.* ./plugin/abbott/
+COPY plugin/tandem/go.* ./plugin/tandem/
 COPY plugin/visibility/ ./plugin/visibility/
 
 # platform-init-public
 FROM platform-init AS platform-init-public
 COPY plugin/abbott/abbott/plugin/ ./plugin/abbott/abbott/plugin/
+COPY plugin/tandem/tandem/plugin/ ./plugin/tandem/tandem/plugin/
 RUN make init plugins-visibility
 
 # platform-init-private
 FROM platform-init AS platform-init-private
 COPY private/plugin/abbott/go.* ./private/plugin/abbott/
 COPY private/plugin/abbott/abbott/plugin/ ./private/plugin/abbott/abbott/plugin/
+COPY private/plugin/tandem/go.* ./private/plugin/tandem/
+COPY private/plugin/tandem/tandem/plugin/ ./private/plugin/tandem/tandem/plugin/
 RUN make init plugins-visibility
 
 ### Build
