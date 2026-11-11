@@ -14,6 +14,9 @@ import (
 	abbottClient "github.com/tidepool-org/platform-plugin-abbott/abbott/client"
 	abbottProvider "github.com/tidepool-org/platform-plugin-abbott/abbott/provider"
 	abbottWork "github.com/tidepool-org/platform-plugin-abbott/abbott/work"
+	"github.com/tidepool-org/platform-plugin-tandem/tandem"
+	tandemClient "github.com/tidepool-org/platform-plugin-tandem/tandem/client"
+	tandemProvider "github.com/tidepool-org/platform-plugin-tandem/tandem/provider"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/auth"
@@ -95,6 +98,7 @@ type Standard struct {
 	workClient                     *workService.Client
 	notificationsHistoryRecorder   notificationsHistory.Recorder
 	abbottClient                   *abbottClient.Client
+	tandemClient                   *tandemClient.Client
 	ouraClient                     *ouraClient.Client
 	userClient                     user.Client
 	confirmationClient             confirmationClient.ClientWithResponsesInterface
@@ -170,6 +174,9 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeAbbottClient(); err != nil {
 		return err
 	}
+	if err := s.initializeTandemClient(); err != nil {
+		return err
+	}
 	if err := s.initializeOuraClient(); err != nil {
 		return err
 	}
@@ -212,6 +219,7 @@ func (s *Standard) Terminate() {
 		s.workCoordinator = nil
 	}
 	s.ouraClient = nil
+	s.tandemClient = nil
 	s.abbottClient = nil
 	s.workClient = nil
 	s.dataSourceClient = nil
@@ -687,6 +695,48 @@ func (s *Standard) initializeAbbottClient() error {
 			return errors.Wrap(clntErr, "unable to create abbott client")
 		}
 		s.abbottClient = clnt
+	}
+
+	return nil
+}
+
+func (s *Standard) initializeTandemClient() error {
+	s.Logger().Debug("Loading tandem client config")
+
+	cfg := tandemClient.NewConfig()
+	cfg.UserAgent = s.UserAgent()
+	if err := cfg.LoadFromConfigReporter(s.ConfigReporter().WithScopes("tandem", "client")); err != nil {
+		return errors.Wrap(err, "unable to load tandem client config")
+	}
+
+	s.Logger().Debug("Loading tandem provider")
+
+	tandemJWKS, err := oauthProvider.NewJWKS(s.ConfigReporter().WithScopes("provider", tandem.ProviderName))
+	if err != nil {
+		return errors.Wrap(err, "unable to create tandem jwks")
+	}
+	tandemProviderDependencies := tandemProvider.ProviderDependencies{
+		ConfigReporter:        s.ConfigReporter().WithScopes("provider"),
+		ClientConfig:          cfg,
+		ProviderSessionClient: s.AuthClient(),
+		DataSourceClient:      s.dataSourceClient,
+		WorkClient:            s.workClient,
+		JWKS:                  tandemJWKS,
+	}
+	if prvdr, err := tandemProvider.New(tandemProviderDependencies); err != nil || prvdr == nil {
+		s.Logger().WithError(err).Warn("Unable to create tandem provider")
+	} else {
+		s.Logger().Debug("Creating tandem client")
+
+		tandemClientDependencies := tandemClient.ClientDependencies{
+			Config:            cfg,
+			TokenSourceSource: prvdr,
+		}
+		clnt, clntErr := tandemClient.NewClient(tandemClientDependencies)
+		if clntErr != nil {
+			return errors.Wrap(clntErr, "unable to create tandem client")
+		}
+		s.tandemClient = clnt
 	}
 
 	return nil

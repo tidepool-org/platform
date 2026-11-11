@@ -10,6 +10,7 @@ import (
 	configTest "github.com/tidepool-org/platform/config/test"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 	oauthProviderTest "github.com/tidepool-org/platform/oauth/provider/test"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 )
 
@@ -61,6 +62,12 @@ var _ = Describe("Config", func() {
 			configReporter.Config["client_timeout"] = "invalid"
 			Expect(config.LoadFromConfigReporter(configReporter)).To(MatchError("client timeout is invalid"))
 		})
+
+		It("does not load pkce enabled from the config reporter", func() {
+			configReporter.Set("pkce_enabled", "true")
+			Expect(config.LoadFromConfigReporter(configReporter)).To(Succeed())
+			Expect(config.PKCEEnabled).To(BeFalse())
+		})
 	})
 
 	Context("Validate", func() {
@@ -87,6 +94,33 @@ var _ = Describe("Config", func() {
 		It("returns an error when the client timeout is negative", func() {
 			config.ClientTimeout = -oauthProviderTest.RandomClientTimeout()
 			Expect(config.Validate()).To(MatchError("client timeout is invalid"))
+		})
+
+		Context("with pkce enabled and cookies disabled", func() {
+			BeforeEach(func() {
+				config.CookieDisabled = true
+				config.StateSalt = nil
+				config.PKCEEnabled = true
+			})
+
+			It("returns an error when the state salt is missing", func() {
+				Expect(config.Validate()).To(MatchError("state salt is missing"))
+			})
+
+			It("returns an error when the state salt is empty", func() {
+				config.StateSalt = pointer.FromString("")
+				Expect(config.Validate()).To(MatchError("state salt is empty"))
+			})
+
+			It("returns successfully when the state salt is present", func() {
+				config.StateSalt = pointer.FromString(oauthProviderTest.RandomStateSalt())
+				Expect(config.Validate()).To(Succeed())
+			})
+
+			It("returns successfully without a state salt when pkce is disabled too", func() {
+				config.PKCEEnabled = false
+				Expect(config.Validate()).To(Succeed())
+			})
 		})
 	})
 })
