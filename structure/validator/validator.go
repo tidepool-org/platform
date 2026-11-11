@@ -75,6 +75,10 @@ func (v *Validator) Int(reference string, value *int) structure.Int {
 	return NewInt(v.base.WithReference(reference), value)
 }
 
+func (v *Validator) Int64(reference string, value *int64) structure.Int64 {
+	return NewInt64(v.base.WithReference(reference), value)
+}
+
 func (v *Validator) String(reference string, value *string) structure.String {
 	return NewString(v.base.WithReference(reference), value)
 }
