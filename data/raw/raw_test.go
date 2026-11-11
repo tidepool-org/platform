@@ -44,6 +44,45 @@ var _ = Describe("Raw", func() {
 		Expect(dataRaw.MediaTypeDefault).To(Equal("application/octet-stream"))
 	})
 
+	It("MetadataKeyMinimumSequenceGroup is expected", func() {
+		Expect(dataRaw.MetadataKeyMinimumSequenceGroup).To(Equal("minimumSequenceGroup"))
+	})
+
+	It("MetadataKeyMinimumSequenceNumber is expected", func() {
+		Expect(dataRaw.MetadataKeyMinimumSequenceNumber).To(Equal("minimumSequenceNumber"))
+	})
+
+	It("MetadataKeyMaximumSequenceGroup is expected", func() {
+		Expect(dataRaw.MetadataKeyMaximumSequenceGroup).To(Equal("maximumSequenceGroup"))
+	})
+
+	It("MetadataKeyMaximumSequenceNumber is expected", func() {
+		Expect(dataRaw.MetadataKeyMaximumSequenceNumber).To(Equal("maximumSequenceNumber"))
+	})
+
+	It("SortCreatedTime is expected", func() {
+		Expect(dataRaw.SortCreatedTime).To(Equal("createdTime"))
+	})
+
+	It("SortSequence is expected", func() {
+		Expect(dataRaw.SortSequence).To(Equal("sequence"))
+	})
+
+	Context("ListOption", func() {
+		It("sorts by created time by default", func() {
+			Expect(dataRaw.ListOptions(nil).Sort()).To(Equal(dataRaw.SortCreatedTime))
+		})
+
+		It("sorts as WithSort says", func() {
+			Expect(dataRaw.ListOptions([]dataRaw.ListOption{dataRaw.WithSort(dataRaw.SortSequence)}).Sort()).To(Equal(dataRaw.SortSequence))
+		})
+
+		It("sorts as the last option that says so", func() {
+			options := []dataRaw.ListOption{dataRaw.WithSort(dataRaw.SortSequence), {}, dataRaw.WithSort(dataRaw.SortCreatedTime), {}}
+			Expect(dataRaw.ListOptions(options).Sort()).To(Equal(dataRaw.SortCreatedTime))
+		})
+	})
+
 	Context("Filter", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *dataRaw.Filter)) {
@@ -67,6 +106,11 @@ var _ = Describe("Raw", func() {
 					datum.Processed = pointer.From(test.RandomBool())
 					datum.Archivable = pointer.From(test.RandomBool())
 					datum.Archived = pointer.From(test.RandomBool())
+					datum.MediaTypes = pointer.From(netTest.RandomMediaTypes(1, 3))
+					datum.SequenceGroup = pointer.From(dataRawTest.RandomSequenceNumber())
+					datum.SequenceNumberAfter = pointer.From(dataRawTest.RandomSequenceNumber())
+					datum.SequenceNumberFrom = pointer.From(dataRawTest.RandomSequenceNumber())
+					datum.ProcessedOrdinalFrom = pointer.From(dataRawTest.RandomSequenceNumber())
 				},
 			),
 		)
@@ -91,17 +135,32 @@ var _ = Describe("Raw", func() {
 						object["processed"] = ""
 						object["archivable"] = ""
 						object["archived"] = ""
+						object["mediaTypes"] = true
+						object["sequenceGroup"] = ""
+						object["sequenceNumberAfter"] = ""
+						object["sequenceNumberFrom"] = ""
+						object["processedOrdinalFrom"] = ""
 						expectedDatum.CreatedDate = nil
 						expectedDatum.DataSetID = nil
 						expectedDatum.Processed = nil
 						expectedDatum.Archivable = nil
 						expectedDatum.Archived = nil
+						expectedDatum.MediaTypes = nil
+						expectedDatum.SequenceGroup = nil
+						expectedDatum.SequenceNumberAfter = nil
+						expectedDatum.SequenceNumberFrom = nil
+						expectedDatum.ProcessedOrdinalFrom = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/createdDate"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/dataSetId"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool(""), "/processed"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool(""), "/archivable"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool(""), "/archived"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/mediaTypes"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(""), "/sequenceGroup"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(""), "/sequenceNumberAfter"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(""), "/sequenceNumberFrom"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(""), "/processedOrdinalFrom"),
 				),
 			)
 		})
@@ -142,13 +201,115 @@ var _ = Describe("Raw", func() {
 					func(datum *dataRaw.Filter) { datum.DataSetID = pointer.FromString("invalid") },
 					errorsTest.WithPointerSource(data.ErrorValueStringAsSetIDNotValid("invalid"), "/dataSetId"),
 				),
+				Entry("mediaTypes missing",
+					func(datum *dataRaw.Filter) { datum.MediaTypes = nil },
+				),
+				Entry("mediaTypes empty",
+					func(datum *dataRaw.Filter) { datum.MediaTypes = pointer.From([]string{}) },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/mediaTypes"),
+				),
+				Entry("mediaTypes element invalid",
+					func(datum *dataRaw.Filter) { datum.MediaTypes = pointer.From([]string{"/"}) },
+					errorsTest.WithPointerSource(net.ErrorValueStringAsMediaTypeNotValid("/"), "/mediaTypes/0"),
+				),
+				Entry("mediaTypes element duplicate",
+					func(datum *dataRaw.Filter) {
+						mediaType := netTest.RandomMediaType()
+						datum.MediaTypes = pointer.From([]string{mediaType, mediaType})
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/mediaTypes/1"),
+				),
+				Entry("sequenceGroup and sequenceNumberAfter missing",
+					func(datum *dataRaw.Filter) {
+						datum.SequenceGroup = nil
+						datum.SequenceNumberAfter = nil
+					},
+				),
+				Entry("sequenceGroup and sequenceNumberAfter zero",
+					func(datum *dataRaw.Filter) {
+						datum.SequenceGroup = pointer.From(int64(0))
+						datum.SequenceNumberAfter = pointer.From(int64(0))
+						datum.SequenceNumberFrom = nil
+					},
+				),
+				Entry("sequenceGroup without sequenceNumberAfter",
+					func(datum *dataRaw.Filter) {
+						datum.SequenceGroup = pointer.From(dataRawTest.RandomSequenceNumber())
+						datum.SequenceNumberAfter = nil
+					},
+				),
+				Entry("sequenceGroup negative",
+					func(datum *dataRaw.Filter) {
+						datum.SequenceGroup = pointer.From(int64(-1))
+						datum.SequenceNumberAfter = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(int64(-1), int64(0)), "/sequenceGroup"),
+				),
+				Entry("sequenceNumberAfter without sequenceGroup",
+					func(datum *dataRaw.Filter) {
+						datum.SequenceGroup = nil
+						datum.SequenceNumberAfter = pointer.From(dataRawTest.RandomSequenceNumber())
+						datum.SequenceNumberFrom = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/sequenceGroup"),
+				),
+				Entry("sequenceNumberAfter negative",
+					func(datum *dataRaw.Filter) {
+						datum.SequenceGroup = pointer.From(dataRawTest.RandomSequenceNumber())
+						datum.SequenceNumberAfter = pointer.From(int64(-1))
+						datum.SequenceNumberFrom = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(int64(-1), int64(0)), "/sequenceNumberAfter"),
+				),
+				Entry("sequenceNumberFrom zero",
+					func(datum *dataRaw.Filter) {
+						datum.SequenceGroup = pointer.From(dataRawTest.RandomSequenceNumber())
+						datum.SequenceNumberAfter = nil
+						datum.SequenceNumberFrom = pointer.From(int64(0))
+					},
+				),
+				Entry("sequenceNumberFrom without sequenceGroup",
+					func(datum *dataRaw.Filter) {
+						datum.SequenceGroup = nil
+						datum.SequenceNumberAfter = nil
+						datum.SequenceNumberFrom = pointer.From(dataRawTest.RandomSequenceNumber())
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/sequenceGroup"),
+				),
+				Entry("processedOrdinalFrom negative",
+					func(datum *dataRaw.Filter) {
+						datum.ProcessedOrdinalFrom = pointer.From(int64(-1))
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(int64(-1), int64(0)), "/processedOrdinalFrom"),
+				),
+				Entry("sequenceNumberFrom negative",
+					func(datum *dataRaw.Filter) {
+						datum.SequenceGroup = pointer.From(dataRawTest.RandomSequenceNumber())
+						datum.SequenceNumberAfter = nil
+						datum.SequenceNumberFrom = pointer.From(int64(-1))
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(int64(-1), int64(0)), "/sequenceNumberFrom"),
+				),
+				Entry("sequenceNumberFrom with sequenceNumberAfter",
+					func(datum *dataRaw.Filter) {
+						datum.SequenceGroup = pointer.From(dataRawTest.RandomSequenceNumber())
+						datum.SequenceNumberAfter = pointer.From(dataRawTest.RandomSequenceNumber())
+						datum.SequenceNumberFrom = pointer.From(dataRawTest.RandomSequenceNumber())
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/sequenceNumberFrom"),
+				),
 				Entry("multiple errors",
 					func(datum *dataRaw.Filter) {
 						datum.CreatedDate = pointer.FromString("invalid")
 						datum.DataSetID = pointer.FromString("")
+						datum.SequenceGroup = nil
+						datum.SequenceNumberAfter = pointer.From(int64(-1))
+						datum.SequenceNumberFrom = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", dataRaw.FilterCreatedDateFormat), "/createdDate"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/sequenceGroup"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(int64(-1), int64(0)), "/sequenceNumberAfter"),
 				),
 			)
 		})
@@ -408,6 +569,7 @@ var _ = Describe("Raw", func() {
 					datum.ArchivableTime = pointer.From(test.RandomTimeBeforeNow())
 					datum.ArchivedTime = pointer.From(test.RandomTimeBeforeNow())
 					datum.Metadata = metadataTest.RandomMetadataMapPointer()
+					datum.ClearProcessed = true
 				},
 			),
 		)
@@ -492,6 +654,32 @@ var _ = Describe("Raw", func() {
 						datum.Metadata = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValuesNotExistForAny("archivableTime", "archivedTime", "metadata", "processedTime"), ""),
+				),
+				Entry("clearProcessed alone",
+					func(datum *dataRaw.Update) {
+						*datum = dataRaw.Update{ClearProcessed: true}
+					},
+				),
+				Entry("clearProcessed with metadata",
+					func(datum *dataRaw.Update) {
+						*datum = dataRaw.Update{
+							Metadata:       metadataTest.RandomMetadataMapPointer(),
+							ClearProcessed: true,
+						}
+					},
+				),
+				Entry("clearProcessed with the fields it clears",
+					func(datum *dataRaw.Update) {
+						*datum = dataRaw.Update{
+							ProcessedTime:  pointer.FromTime(test.RandomTimeBeforeNow()),
+							ArchivableTime: pointer.FromTime(test.RandomTimeBeforeNow()),
+							ArchivedTime:   pointer.FromTime(test.RandomTimeBeforeNow()),
+							ClearProcessed: true,
+						}
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/processedTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/archivableTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/archivedTime"),
 				),
 				Entry("multiple errors",
 					func(datum *dataRaw.Update) {

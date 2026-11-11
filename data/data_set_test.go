@@ -2,6 +2,7 @@ package data_test
 
 import (
 	"sort"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -10,8 +11,10 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/metadata"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -223,6 +226,66 @@ var _ = Describe("DataSet", func() {
 		)
 	})
 
+	Context("DataSetUpdate", func() {
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(mutator func(datum *data.DataSetUpdate), expectedErrors ...error) {
+					datum := &data.DataSetUpdate{State: pointer.FromString("closed")}
+					mutator(datum)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
+				},
+				Entry("succeeds",
+					func(datum *data.DataSetUpdate) {},
+				),
+				Entry("metadata and condition valid",
+					func(datum *data.DataSetUpdate) {
+						datum.Metadata = metadataTest.RandomMetadataMapPointer()
+						datum.Condition = data.NewDataSetConditionWithRevision(pointer.FromInt(test.RandomIntFromRange(0, 100)))
+					},
+				),
+				Entry("metadata invalid",
+					func(datum *data.DataSetUpdate) {
+						datum.Metadata = &map[string]any{"invalid": strings.Repeat("X", metadata.MetadataSizeMaximum)}
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorSizeNotLessThanOrEqualTo(4110, metadata.MetadataSizeMaximum), "/metadata"),
+				),
+				Entry("condition invalid",
+					func(datum *data.DataSetUpdate) {
+						datum.Condition = data.NewDataSetConditionWithRevision(pointer.FromInt(-1))
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/condition/revision"),
+				),
+			)
+		})
+
+		Context("IsEmpty", func() {
+			It("returns true when nothing is set", func() {
+				Expect(data.NewDataSetUpdate().IsEmpty()).To(BeTrue())
+			})
+
+			It("returns true with only a condition", func() {
+				Expect((&data.DataSetUpdate{Condition: data.NewDataSetConditionWithRevision(pointer.FromInt(1))}).IsEmpty()).To(BeTrue())
+			})
+
+			It("returns false with metadata", func() {
+				Expect((&data.DataSetUpdate{Metadata: metadataTest.RandomMetadataMapPointer()}).IsEmpty()).To(BeFalse())
+			})
+		})
+	})
+
+	Context("ErrorDataSetUpdateConflict", func() {
+		It("has the expected code", func() {
+			Expect(errors.Code(data.ErrorDataSetUpdateConflict())).To(Equal("data-set-update-conflict"))
+		})
+
+		It("is recognised directly and when wrapped", func() {
+			Expect(data.IsErrorDataSetUpdateConflict(data.ErrorDataSetUpdateConflict())).To(BeTrue())
+			Expect(data.IsErrorDataSetUpdateConflict(errors.Wrap(data.ErrorDataSetUpdateConflict(), "wrapped"))).To(BeTrue())
+			Expect(data.IsErrorDataSetUpdateConflict(errors.New("other"))).To(BeFalse())
+			Expect(data.IsErrorDataSetUpdateConflict(nil)).To(BeFalse())
+		})
+	})
+
 	Context("DataSet", func() {
 		Context("New", func() {
 			It("returns the expected datum with all values initialized", func() {
@@ -263,6 +326,7 @@ var _ = Describe("DataSet", func() {
 				Expect(datum.UserID).To(BeNil())
 				Expect(datum.Version).To(BeNil())
 				Expect(datum.VersionInternal).To(BeZero())
+				Expect(datum.Revision).To(BeZero())
 
 			})
 		})
@@ -291,6 +355,17 @@ var _ = Describe("DataSet", func() {
 					Entry("type upload",
 						func(datum *data.DataSet) { datum.Type = "upload" },
 						structure.Origins(),
+					),
+					Entry("metadata missing",
+						func(datum *data.DataSet) { datum.Metadata = nil },
+						structure.Origins(),
+					),
+					Entry("metadata invalid",
+						func(datum *data.DataSet) {
+							datum.Metadata = map[string]any{"invalid": strings.Repeat("X", metadata.MetadataSizeMaximum)}
+						},
+						structure.Origins(),
+						errorsTest.WithPointerSource(structureValidator.ErrorSizeNotLessThanOrEqualTo(4110, metadata.MetadataSizeMaximum), "/metadata"),
 					),
 					Entry("by user missing",
 						func(datum *data.DataSet) { datum.ByUser = nil },

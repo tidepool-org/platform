@@ -18,6 +18,7 @@ import (
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/request"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -510,18 +511,37 @@ var _ = Describe("mixin", func() {
 
 					It("returns failing process result when the client returns an error", func() {
 						testErr := errorsTest.RandomError()
-						mockDataRawClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataRw.ID, nil, expectedDataRwUpdate).Return(nil, testErr)
+						mockDataRawClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataRw.ID, request.NewConditionWithRevision(pointer.From(dataRw.Revision)), expectedDataRwUpdate).Return(nil, testErr)
 						Expect(mixin.UpdateDataRaw(dataRwUpdate)).To(workTest.MatchFailingProcessResultError(MatchError(errors.Wrap(testErr, "unable to update data raw").Error())))
 					})
 
-					It("returns failed process result when the client returns a nil data raw", func() {
-						mockDataRawClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataRw.ID, nil, expectedDataRwUpdate).Return(nil, nil)
-						Expect(mixin.UpdateDataRaw(dataRwUpdate)).To(workTest.MatchFailedProcessResultError(MatchError("data raw is missing")))
+					Context("when the client returns a nil data raw", func() {
+						BeforeEach(func() {
+							mockDataRawClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataRw.ID, request.NewConditionWithRevision(pointer.From(dataRw.Revision)), expectedDataRwUpdate).Return(nil, nil)
+						})
+
+						It("returns failing process result when the client cannot get the data raw", func() {
+							testErr := errorsTest.RandomError()
+							mockDataRawClient.EXPECT().Get(gomock.Not(gomock.Nil()), dataRw.ID, nil).Return(nil, testErr)
+							Expect(mixin.UpdateDataRaw(dataRwUpdate)).To(workTest.MatchFailingProcessResultError(MatchError(errors.Wrap(testErr, "unable to get data raw").Error())))
+						})
+
+						It("returns failed process result when the data raw is gone", func() {
+							mockDataRawClient.EXPECT().Get(gomock.Not(gomock.Nil()), dataRw.ID, nil).Return(nil, nil)
+							Expect(mixin.UpdateDataRaw(dataRwUpdate)).To(workTest.MatchFailedProcessResultError(MatchError("data raw is missing")))
+						})
+
+						It("returns failing process result with a conflict when the data raw still exists", func() {
+							mockDataRawClient.EXPECT().Get(gomock.Not(gomock.Nil()), dataRw.ID, nil).Return(randomDataRawWithMockMetadata(), nil)
+							result := mixin.UpdateDataRaw(dataRwUpdate)
+							Expect(result).To(workTest.MatchFailingProcessResultError(MatchError(errors.Wrap(dataRaw.ErrorDataRawUpdateConflict(), "unable to update data raw").Error())))
+							Expect(dataRaw.IsErrorDataRawUpdateConflict(result.FailingUpdate.FailingError.Error)).To(BeTrue())
+						})
 					})
 
 					It("updates the data raw and returns nil on success", func() {
 						updatedDataRw := randomDataRawWithMockMetadata()
-						mockDataRawClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataRw.ID, nil, expectedDataRwUpdate).Return(updatedDataRw, nil)
+						mockDataRawClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataRw.ID, request.NewConditionWithRevision(pointer.From(dataRw.Revision)), expectedDataRwUpdate).Return(updatedDataRw, nil)
 						Expect(mixin.UpdateDataRaw(dataRwUpdate)).To(BeNil())
 						Expect(mixin.DataRaw()).To(Equal(updatedDataRw))
 					})
@@ -541,7 +561,7 @@ var _ = Describe("mixin", func() {
 					expectedDataRwUpdate := &dataRaw.Update{}
 					expectedDataRwUpdate.Metadata = &map[string]any{"mock": testString}
 					updatedDataRw := randomDataRawWithMockMetadata()
-					mockDataRawClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataRw.ID, nil, expectedDataRwUpdate).Return(updatedDataRw, nil)
+					mockDataRawClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataRw.ID, request.NewConditionWithRevision(pointer.From(dataRw.Revision)), expectedDataRwUpdate).Return(updatedDataRw, nil)
 					Expect(mixin.UpdateDataRawMetadata()).To(BeNil())
 					Expect(mixin.DataRaw()).To(Equal(updatedDataRw))
 				})

@@ -187,6 +187,8 @@ func (c *ClientImpl) UpdateDataSet(ctx context.Context, id string, update *data.
 		return nil, errors.New("update is missing")
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
+	} else if update.Metadata != nil || update.Condition != nil { // Neither is sent over HTTP
+		return nil, errors.New("update with metadata or condition is not supported")
 	}
 
 	url := c.client.ConstructURL("v1", "data_sets", id)

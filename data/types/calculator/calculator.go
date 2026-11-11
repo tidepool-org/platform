@@ -139,6 +139,7 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) {
 
 	if normalizer.Origin() == structure.OriginExternal {
 		if c.Bolus != nil {
+			types.DeriveChildOriginID(c, *c.Bolus, "bolus")
 			normalizer.AddData(*c.Bolus)
 			switch bolus := (*c.Bolus).(type) {
 			case *dataTypesBolusCombination.Combination:

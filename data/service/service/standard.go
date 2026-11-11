@@ -487,6 +487,13 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 		return errors.Wrap(err, "unable to create data set drop hash deduplicator")
 	}
 
+	s.Logger().Debug("Creating data set origin revise deduplicator")
+
+	dataSetOriginReviseDeduplicator, err := dataDeduplicatorDeduplicator.NewDataSetOriginRevise(dependencies)
+	if err != nil {
+		return errors.Wrap(err, "unable to create data set origin revise deduplicator")
+	}
+
 	s.Logger().Debug("Creating none deduplicator")
 
 	noneDeduplicator, err := dataDeduplicatorDeduplicator.NewNone(dependencies)
@@ -502,6 +509,7 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 		dataSetDeleteOriginDeduplicator,
 		dataSetDeleteOriginOlderDeduplicator,
 		dataSetDropHashDeduplicator,
+		dataSetOriginReviseDeduplicator,
 		noneDeduplicator,
 	}
 

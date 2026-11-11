@@ -103,6 +103,7 @@ func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *data.DataSe
 
 	dataSet.DeletedTime = &timestamp
 	dataSet.ModifiedTime = &timestamp
+	dataSet.Revision++
 	return nil
 }
 

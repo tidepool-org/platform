@@ -10,6 +10,7 @@ import (
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/work"
 )
@@ -237,13 +238,21 @@ func (m *mixin[M]) UpdateDataRaw(dataRawUpdate *dataRaw.Update) *work.ProcessRes
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(m.Context()), 10*time.Second)
 	defer cancel()
 
-	if dataRw, err := m.dataRawClient.Update(ctx, m.dataRaw.ID, nil, dataRawUpdate); err != nil {
+	// Conditioned on the revision read, so a concurrent writer cannot be overwritten
+	condition := request.NewConditionWithRevision(pointer.From(m.dataRaw.Revision))
+	if dataRw, err := m.dataRawClient.Update(ctx, m.dataRaw.ID, condition, dataRawUpdate); err != nil {
 		return m.Failing(errors.Wrap(err, "unable to update data raw"))
-	} else if dataRw == nil {
-		return m.Failed(errors.New("data raw is missing"))
-	} else {
+	} else if dataRw != nil {
 		return m.SetDataRaw(dataRw)
 	}
+
+	// No match is a conflict with a concurrent writer, unless the data raw is gone, which no retry resolves
+	if dataRw, err := m.dataRawClient.Get(ctx, m.dataRaw.ID, nil); err != nil {
+		return m.Failing(errors.Wrap(err, "unable to get data raw"))
+	} else if dataRw == nil {
+		return m.Failed(errors.New("data raw is missing"))
+	}
+	return m.Failing(errors.Wrap(dataRaw.ErrorDataRawUpdateConflict(), "unable to update data raw"))
 }
 
 func (m *mixin[M]) UpdateDataRawMetadata() *work.ProcessResult {

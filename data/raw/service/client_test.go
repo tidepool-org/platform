@@ -66,6 +66,14 @@ var _ = Describe("Client", func() {
 				mockStore.EXPECT().List(ctx, userID, filter, pagination).Return(expected, nil)
 				Expect(clnt.List(ctx, userID, filter, pagination)).To(Equal(expected))
 			})
+
+			It("passes the options to store.List", func() {
+				userID := userTest.RandomUserID()
+				option := dataRaw.WithSort(dataRaw.SortSequence)
+				expected := []*dataRaw.Raw{{ID: test.RandomString()}}
+				mockStore.EXPECT().List(ctx, userID, nil, nil, option).Return(expected, nil)
+				Expect(clnt.List(ctx, userID, nil, nil, option)).To(Equal(expected))
+			})
 		})
 
 		Context("Create", func() {

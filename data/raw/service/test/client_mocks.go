@@ -319,18 +319,23 @@ func (c *MockStoreGetContentCall) DoAndReturn(f func(context.Context, string, *s
 }
 
 // List mocks base method.
-func (m *MockStore) List(ctx context.Context, userID string, filter *raw.Filter, pagination *page.Pagination) ([]*raw.Raw, error) {
+func (m *MockStore) List(ctx context.Context, userID string, filter *raw.Filter, pagination *page.Pagination, options ...raw.ListOption) ([]*raw.Raw, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "List", ctx, userID, filter, pagination)
+	varargs := []any{ctx, userID, filter, pagination}
+	for _, a := range options {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "List", varargs...)
 	ret0, _ := ret[0].([]*raw.Raw)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // List indicates an expected call of List.
-func (mr *MockStoreMockRecorder) List(ctx, userID, filter, pagination any) *MockStoreListCall {
+func (mr *MockStoreMockRecorder) List(ctx, userID, filter, pagination any, options ...any) *MockStoreListCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockStore)(nil).List), ctx, userID, filter, pagination)
+	varargs := append([]any{ctx, userID, filter, pagination}, options...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockStore)(nil).List), varargs...)
 	return &MockStoreListCall{Call: call}
 }
 
@@ -346,13 +351,13 @@ func (c *MockStoreListCall) Return(arg0 []*raw.Raw, arg1 error) *MockStoreListCa
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockStoreListCall) Do(f func(context.Context, string, *raw.Filter, *page.Pagination) ([]*raw.Raw, error)) *MockStoreListCall {
+func (c *MockStoreListCall) Do(f func(context.Context, string, *raw.Filter, *page.Pagination, ...raw.ListOption) ([]*raw.Raw, error)) *MockStoreListCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockStoreListCall) DoAndReturn(f func(context.Context, string, *raw.Filter, *page.Pagination) ([]*raw.Raw, error)) *MockStoreListCall {
+func (c *MockStoreListCall) DoAndReturn(f func(context.Context, string, *raw.Filter, *page.Pagination, ...raw.ListOption) ([]*raw.Raw, error)) *MockStoreListCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

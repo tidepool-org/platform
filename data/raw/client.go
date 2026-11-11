@@ -11,7 +11,7 @@ import (
 //go:generate mockgen -source=client.go -destination=test/client_mocks.go -package=test -typed
 
 type Client interface {
-	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) ([]*Raw, error)
+	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination, options ...ListOption) ([]*Raw, error)
 	Create(ctx context.Context, userID string, dataSetID string, create *Create, data io.Reader) (*Raw, error)
 	Get(ctx context.Context, id string, condition *request.Condition) (*Raw, error)
 	GetContent(ctx context.Context, id string, condition *request.Condition) (*Content, error)
