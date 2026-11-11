@@ -179,7 +179,7 @@ var _ = Describe("mixin", func() {
 
 				It("returns failed result if data source data set id is missing", func() {
 					dataSrc := dataSourceTest.RandomSource(test.AllowOptionals())
-					dataSrc.DataSetID = nil
+					dataSrc.DataSetIDs = nil
 					mockDataSourceMixin.EXPECT().DataSource().Return(dataSrc)
 					Expect(mixin.FetchDataSetFromDataSource()).To(workTest.MatchFailedProcessResultError(MatchError("data source data set id is missing")))
 				})
@@ -187,9 +187,9 @@ var _ = Describe("mixin", func() {
 				It("returns successfully", func() {
 					expectedResult := workTest.RandomSuccessProcessResult()
 					dataSrc := dataSourceTest.RandomSource(test.AllowOptionals())
-					dataSrc.DataSetID = pointer.From(dataTest.RandomDataSetID())
+					dataSrc.DataSetIDs = pointer.From(dataTest.RandomDataSetIDs())
 					mockDataSourceMixin.EXPECT().DataSource().Return(dataSrc)
-					mockDataSetMixin.EXPECT().FetchDataSet(*dataSrc.DataSetID).Return(expectedResult)
+					mockDataSetMixin.EXPECT().FetchDataSet(*dataSrc.LastDataSetID()).Return(expectedResult)
 					Expect(mixin.FetchDataSetFromDataSource()).To(Equal(expectedResult))
 				})
 			})
@@ -211,12 +211,12 @@ var _ = Describe("mixin", func() {
 
 					BeforeEach(func() {
 						dataSrc = dataSourceTest.RandomSource(test.AllowOptionals())
-						dataSrc.DataSetID = nil
+						dataSrc.DataSetIDs = nil
 						mockDataSourceMixin.EXPECT().DataSource().Return(dataSrc)
 					})
 
 					It("returns failed result if data source data set id already exists", func() {
-						dataSrc.DataSetID = pointer.From(dataTest.RandomDataSetID())
+						dataSrc.DataSetIDs = pointer.From(dataTest.RandomDataSetIDs())
 						Expect(mixin.CreateDataSetForDataSource(dataSetCreate)).To(workTest.MatchFailedProcessResultError(MatchError("data source data set id already exists")))
 					})
 
@@ -231,7 +231,7 @@ var _ = Describe("mixin", func() {
 						expectedResult := workTest.RandomSuccessProcessResult()
 						mockDataSetMixin.EXPECT().CreateDataSet(dataSrc.UserID, dataSetCreate).Return(nil)
 						mockDataSetMixin.EXPECT().DataSet().Return(dataSt)
-						mockDataSourceMixin.EXPECT().UpdateDataSource(&dataSource.Update{DataSetID: dataSt.ID}).Return(expectedResult)
+						mockDataSourceMixin.EXPECT().UpdateDataSource(&dataSource.Update{DataSetIDs: pointer.From([]string{*dataSt.ID})}).Return(expectedResult)
 						Expect(mixin.CreateDataSetForDataSource(dataSetCreate)).To(Equal(expectedResult))
 					})
 				})
@@ -308,25 +308,25 @@ var _ = Describe("mixin", func() {
 
 					BeforeEach(func() {
 						dataSrc = dataSourceTest.RandomSource(test.AllowOptionals())
-						dataSrc.DataSetID = pointer.From(dataTest.RandomDataSetID())
+						dataSrc.DataSetIDs = pointer.From(dataTest.RandomDataSetIDs())
 						mockDataSourceMixin.EXPECT().DataSource().Return(dataSrc)
 					})
 
 					It("returns failed result if data source data set id is missing", func() {
-						dataSrc.DataSetID = nil
+						dataSrc.DataSetIDs = nil
 						Expect(mixin.CreateDataRawForDataSource(dataRawCreate, reader)).To(workTest.MatchFailedProcessResultError(MatchError("data source data set id is missing")))
 					})
 
 					It("returns result if create data set returns a result", func() {
 						expectedResult := workTest.RandomFailingProcessResult()
-						mockDataRawMixin.EXPECT().CreateDataRaw(dataSrc.UserID, *dataSrc.DataSetID, dataRawCreate, reader).Return(expectedResult)
+						mockDataRawMixin.EXPECT().CreateDataRaw(dataSrc.UserID, *dataSrc.LastDataSetID(), dataRawCreate, reader).Return(expectedResult)
 						Expect(mixin.CreateDataRawForDataSource(dataRawCreate, reader)).To(Equal(expectedResult))
 					})
 
 					It("returns successfully", func() {
 						dataRw := dataRawTest.RandomRaw(test.AllowOptionals())
 						expectedResult := workTest.RandomSuccessProcessResult()
-						mockDataRawMixin.EXPECT().CreateDataRaw(dataSrc.UserID, *dataSrc.DataSetID, dataRawCreate, reader).Return(nil)
+						mockDataRawMixin.EXPECT().CreateDataRaw(dataSrc.UserID, *dataSrc.LastDataSetID(), dataRawCreate, reader).Return(nil)
 						mockDataRawMixin.EXPECT().DataRaw().Return(dataRw)
 						mockDataSourceMixin.EXPECT().UpdateDataSource(&dataSource.Update{LastImportTime: pointer.From(dataRw.CreatedTime)}).Return(expectedResult)
 						Expect(mixin.CreateDataRawForDataSource(dataRawCreate, reader)).To(Equal(expectedResult))

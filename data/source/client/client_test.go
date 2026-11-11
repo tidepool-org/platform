@@ -15,6 +15,7 @@ import (
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceClient "github.com/tidepool-org/platform/data/source/client"
 	dataSourceTest "github.com/tidepool-org/platform/data/source/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
@@ -220,6 +221,30 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns successfully", func() {
+									Expect(client.List(ctx, userID, filter, pagination)).To(dataSourceTest.MatchSourceArray(responseResult))
+								})
+							})
+
+							When("the server responds with deprecated data set ids", func() {
+								var responseResult dataSource.SourceArray
+								var dataSetID string
+
+								BeforeEach(func() {
+									responseResult = dataSourceTest.RandomSourceArray(1, 4, test.AllowOptionals())
+									dataSetID = dataTest.RandomDataSetID()
+									responseObjects := make([]map[string]any, len(responseResult))
+									for index, source := range responseResult {
+										responseObjects[index] = dataSourceTest.NewObjectFromSource(source, test.ObjectFormatJSON)
+										delete(responseObjects[index], "dataSetIds")
+										responseObjects[index]["dataSetId"] = dataSetID
+									}
+									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseObjects, responseHeaders))
+								})
+
+								It("returns the data set id as the only data set id of each", func() {
+									for _, source := range responseResult {
+										source.DataSetIDs = pointer.From([]string{dataSetID})
+									}
 									Expect(client.List(ctx, userID, filter, pagination)).To(dataSourceTest.MatchSourceArray(responseResult))
 								})
 							})
@@ -536,6 +561,25 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns successfully with result", func() {
+								Expect(client.Get(ctx, id)).To(dataSourceTest.MatchSource(responseResult))
+							})
+						})
+
+						When("the server responds with a deprecated data set id", func() {
+							var responseResult *dataSource.Source
+							var dataSetID string
+
+							BeforeEach(func() {
+								responseResult = dataSourceTest.RandomSource(test.AllowOptionals())
+								dataSetID = dataTest.RandomDataSetID()
+								responseObject := dataSourceTest.NewObjectFromSource(responseResult, test.ObjectFormatJSON)
+								delete(responseObject, "dataSetIds")
+								responseObject["dataSetId"] = dataSetID
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseObject, responseHeaders))
+							})
+
+							It("returns the data set id as the only data set id", func() {
+								responseResult.DataSetIDs = pointer.From([]string{dataSetID})
 								Expect(client.Get(ctx, id)).To(dataSourceTest.MatchSource(responseResult))
 							})
 						})
