@@ -20,14 +20,71 @@ const (
 	SizeStoredMaximum       = 10 * 1024 * 1024
 	MetadataSizeMaximum     = 4 * 1024
 	MediaTypeDefault        = "application/octet-stream"
+
+	// The metadata keys the sequence filter and sort query: the lowest and highest sequence of the raw data, each a
+	// sequence group and a sequence number within it, ordered by group then number.
+	MetadataKeyMinimumSequenceGroup  = "minimumSequenceGroup"
+	MetadataKeyMinimumSequenceNumber = "minimumSequenceNumber"
+	MetadataKeyMaximumSequenceGroup  = "maximumSequenceGroup"
+	MetadataKeyMaximumSequenceNumber = "maximumSequenceNumber"
+
+	// The metadata key the processed ordinal filter queries: the position of the raw data in the processing order of
+	// its data set, which the work that processes it writes.
+	MetadataKeyProcessedOrdinal = "processedOrdinal"
+
+	SortCreatedTime = "createdTime"
+	SortSequence    = "sequence"
+
+	ErrorCodeDataRawUpdateConflict = "data-raw-update-conflict"
 )
 
+// ListOption chooses the sort of List: SortCreatedTime by default, or SortSequence, by minimum sequence group, then
+// minimum sequence number, then created time, with raw data without a sequence first.
+type ListOption struct {
+	sort *string
+}
+
+func (l ListOption) Sort() string {
+	if l.sort == nil {
+		return SortCreatedTime
+	}
+	return *l.sort
+}
+
+func ListOptions(options []ListOption) ListOption {
+	option := ListOption{}
+	for _, o := range options {
+		if o.sort != nil {
+			option.sort = o.sort
+		}
+	}
+	return option
+}
+
+func WithSort(sort string) ListOption {
+	return ListOption{sort: pointer.From(sort)}
+}
+
 type Filter struct {
-	CreatedDate *string `json:"createdDate,omitempty" bson:"createdDate,omitempty"`
-	DataSetID   *string `json:"dataSetId,omitempty" bson:"dataSetId,omitempty"`
-	Processed   *bool   `json:"processed,omitempty" bson:"processed,omitempty"`
-	Archivable  *bool   `json:"archivable,omitempty" bson:"archivable,omitempty"`
-	Archived    *bool   `json:"archived,omitempty" bson:"archived,omitempty"`
+	CreatedDate *string   `json:"createdDate,omitempty" bson:"createdDate,omitempty"`
+	DataSetID   *string   `json:"dataSetId,omitempty" bson:"dataSetId,omitempty"`
+	Processed   *bool     `json:"processed,omitempty" bson:"processed,omitempty"`
+	Archivable  *bool     `json:"archivable,omitempty" bson:"archivable,omitempty"`
+	Archived    *bool     `json:"archived,omitempty" bson:"archived,omitempty"`
+	MediaTypes  *[]string `json:"mediaTypes,omitempty" bson:"mediaTypes,omitempty"`
+
+	// Raw with a sequence entirely within this sequence group; raw without a sequence is excluded
+	SequenceGroup *int64 `json:"sequenceGroup,omitempty" bson:"sequenceGroup,omitempty"`
+
+	// Raw whose minimum sequence is in SequenceGroup and after this number, whatever its maximum, even in a later
+	// group. Requires SequenceGroup, since sequence numbers are only comparable within a group.
+	SequenceNumberAfter *int64 `json:"sequenceNumberAfter,omitempty" bson:"sequenceNumberAfter,omitempty"`
+
+	// As SequenceNumberAfter, but inclusive. Requires SequenceGroup; exclusive with SequenceNumberAfter.
+	SequenceNumberFrom *int64 `json:"sequenceNumberFrom,omitempty" bson:"sequenceNumberFrom,omitempty"`
+
+	// Raw with a processed ordinal at or after this one; raw without one is excluded
+	ProcessedOrdinalFrom *int64 `json:"processedOrdinalFrom,omitempty" bson:"processedOrdinalFrom,omitempty"`
 }
 
 func (f *Filter) Parse(parser structure.ObjectParser) {
@@ -36,11 +93,27 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 	f.Processed = parser.Bool("processed")
 	f.Archivable = parser.Bool("archivable")
 	f.Archived = parser.Bool("archived")
+	f.MediaTypes = parser.StringArray("mediaTypes")
+	f.SequenceGroup = parser.Int64("sequenceGroup")
+	f.SequenceNumberAfter = parser.Int64("sequenceNumberAfter")
+	f.SequenceNumberFrom = parser.Int64("sequenceNumberFrom")
+	f.ProcessedOrdinalFrom = parser.Int64("processedOrdinalFrom")
 }
 
 func (f *Filter) Validate(validator structure.Validator) {
 	validator.String("createdDate", f.CreatedDate).AsTime(FilterCreatedDateFormat).NotZero()
 	validator.String("dataSetId", f.DataSetID).Using(data.SetIDValidator)
+	validator.StringArray("mediaTypes", f.MediaTypes).NotEmpty().EachUsing(net.MediaTypeValidator).EachUnique()
+	sequenceGroupValidator := validator.Int64("sequenceGroup", f.SequenceGroup).GreaterThanOrEqualTo(0)
+	if f.SequenceNumberAfter != nil || f.SequenceNumberFrom != nil {
+		sequenceGroupValidator.Exists()
+	}
+	validator.Int64("sequenceNumberAfter", f.SequenceNumberAfter).GreaterThanOrEqualTo(0)
+	sequenceNumberFromValidator := validator.Int64("sequenceNumberFrom", f.SequenceNumberFrom).GreaterThanOrEqualTo(0)
+	if f.SequenceNumberAfter != nil {
+		sequenceNumberFromValidator.NotExists()
+	}
+	validator.Int64("processedOrdinalFrom", f.ProcessedOrdinalFrom).GreaterThanOrEqualTo(0)
 }
 
 func (f *Filter) CreatedTime() *time.Time {
@@ -100,11 +173,15 @@ func (c *Content) Validate(validator structure.Validator) {
 	}
 }
 
+// Update changes a raw. ClearProcessed returns a processed raw to unprocessed by unsetting processedTime and
+// archivableTime; it is exclusive with setting any of the times, matches no archived raw since its content is gone,
+// and is not parsed from requests.
 type Update struct {
 	ProcessedTime  *time.Time      `json:"processedTime,omitempty" bson:"processedTime,omitempty"`
 	ArchivableTime *time.Time      `json:"archivableTime,omitempty" bson:"archivableTime,omitempty"`
 	ArchivedTime   *time.Time      `json:"archivedTime,omitempty" bson:"archivedTime,omitempty"`
 	Metadata       *map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	ClearProcessed bool            `json:"clearProcessed,omitempty" bson:"clearProcessed,omitempty"`
 }
 
 func (u *Update) Parse(parser structure.ObjectParser) {
@@ -115,12 +192,17 @@ func (u *Update) Parse(parser structure.ObjectParser) {
 }
 
 func (u *Update) Validate(validator structure.Validator) {
-	validator.Time("processedTime", u.ProcessedTime).NotZero().BeforeNow(time.Second)
-	validator.Time("archivableTime", u.ArchivableTime).NotZero()
-	validator.Time("archivedTime", u.ArchivedTime).NotZero().BeforeNow(time.Second)
+	processedTimeValidator := validator.Time("processedTime", u.ProcessedTime).NotZero().BeforeNow(time.Second)
+	archivableTimeValidator := validator.Time("archivableTime", u.ArchivableTime).NotZero()
+	archivedTimeValidator := validator.Time("archivedTime", u.ArchivedTime).NotZero().BeforeNow(time.Second)
 	validator.Object("metadata", u.Metadata).SizeLessThanOrEqualTo(MetadataSizeMaximum)
+	if u.ClearProcessed {
+		processedTimeValidator.NotExists()
+		archivableTimeValidator.NotExists()
+		archivedTimeValidator.NotExists()
+	}
 
-	if u.ProcessedTime == nil && u.ArchivableTime == nil && u.ArchivedTime == nil && u.Metadata == nil {
+	if u.ProcessedTime == nil && u.ArchivableTime == nil && u.ArchivedTime == nil && u.Metadata == nil && !u.ClearProcessed {
 		validator.ReportError(structureValidator.ErrorValuesNotExistForAny("archivableTime", "archivedTime", "metadata", "processedTime"))
 	}
 }
@@ -231,6 +313,15 @@ func ValidateDataRawID(value string) error {
 
 func ErrorValueStringAsDataRawIDNotValid(value string) error {
 	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as data raw id", value)
+}
+
+func ErrorDataRawUpdateConflict() error {
+	return errors.Prepared(ErrorCodeDataRawUpdateConflict, "data raw update conflict", "data raw was modified or deleted since it was read")
+}
+
+// IsErrorDataRawUpdateConflict reports whether the error, or its cause, is a data raw update conflict.
+func IsErrorDataRawUpdateConflict(err error) bool {
+	return err != nil && errors.Code(errors.Cause(err)) == ErrorCodeDataRawUpdateConflict
 }
 
 var idExpression = regexp.MustCompile("^([0-9a-f]{24}):([0-9]{4}-[0-9]{2}-[0-9]{2})$")

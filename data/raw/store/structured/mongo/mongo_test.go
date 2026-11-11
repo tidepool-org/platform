@@ -98,6 +98,25 @@ var _ = Describe("Mongo", func() {
 							"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("userId", "dataSetId", "createdTime")),
 							"Name": Equal("UserIdDataSetIdCreatedTime"),
 						}),
+						MatchFields(IgnoreExtras, Fields{
+							"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("userId", "dataSetId", "processedTime", "mediaType", "metadata.minimumSequenceGroup", "metadata.minimumSequenceNumber", "createdTime")),
+							"Name": Equal("UserIdDataSetIdProcessedTimeMediaTypeMinimumSequenceCreatedTime"),
+						}),
+						MatchFields(IgnoreExtras, Fields{
+							"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("userId", "dataSetId", "metadata.minimumSequenceGroup", "metadata.minimumSequenceNumber")),
+							"Name": Equal("UserIdDataSetIdProcessedMinimumSequence"),
+							"PartialFilterExpression": Equal(bson.D{
+								{Key: "processedTime", Value: bson.D{{Key: "$exists", Value: true}}},
+								{Key: "metadata.minimumSequenceGroup", Value: bson.D{{Key: "$exists", Value: true}}},
+							}),
+						}),
+						MatchFields(IgnoreExtras, Fields{
+							"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("userId", "dataSetId", "metadata.processedOrdinal")),
+							"Name": Equal("UserIdDataSetIdProcessedOrdinal"),
+							"PartialFilterExpression": Equal(bson.D{
+								{Key: "metadata.processedOrdinal", Value: bson.D{{Key: "$exists", Value: true}}},
+							}),
+						}),
 					))
 				})
 			})
@@ -254,6 +273,17 @@ var _ = Describe("Mongo", func() {
 							}
 						})
 
+						It("returns only records of the media types", func() {
+							mediaTypes := []string{sortedUserDocs[0].MediaType, sortedUserDocs[2].MediaType}
+							filter := &dataRaw.Filter{MediaTypes: pointer.From(mediaTypes)}
+							result, err := store.List(ctx, userID, filter, nil)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(result).ToNot(BeEmpty())
+							for _, r := range result {
+								Expect(mediaTypes).To(ContainElement(r.MediaType))
+							}
+						})
+
 						It("returns only processed records when processed is true", func() {
 							filter := &dataRaw.Filter{Processed: pointer.From(true)}
 							result, err := store.List(ctx, userID, filter, nil)
@@ -346,6 +376,196 @@ var _ = Describe("Mongo", func() {
 							Expect(result).To(HaveLen(2))
 
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": &dataRaw.Filter{}, "pagination": pagination, "count": 2})
+						})
+					})
+
+					It("returns an error when the sort is invalid", func() {
+						result, err := store.List(ctx, userID, nil, nil, dataRaw.WithSort("invalid"))
+						errorsTest.ExpectEqual(err, errors.New("sort is invalid"))
+						Expect(result).To(BeNil())
+					})
+
+					Context("with sequences", func() {
+						var dataSetID string
+						var now time.Time
+						var from100 *dataRawStoreStructuredMongo.Document
+						var from50 *dataRawStoreStructuredMongo.Document
+						var inLaterGroup *dataRawStoreStructuredMongo.Document
+						var spanningGroups *dataRawStoreStructuredMongo.Document
+						var unprocessed *dataRawStoreStructuredMongo.Document
+						var withoutSequence *dataRawStoreStructuredMongo.Document
+
+						newDocument := func(dataSetID string, processed bool, createdTime time.Time) *dataRawStoreStructuredMongo.Document {
+							document := dataRawStoreStructuredMongoTest.RandomDocumentWithUserIDAndDataSetID(userID, dataSetID, test.RequireOptionals())
+							document.CreatedTime = createdTime
+							document.ProcessedTime = nil
+							if processed {
+								document.ProcessedTime = pointer.From(createdTime.Add(time.Minute))
+							}
+							document.ArchivableTime = nil
+							document.Metadata = map[string]any{}
+							return document
+						}
+
+						newSequencedDocument := func(dataSetID string, processed bool, createdTime time.Time, minimumGroup int64, minimumNumber int64, maximumGroup int64, maximumNumber int64) *dataRawStoreStructuredMongo.Document {
+							document := newDocument(dataSetID, processed, createdTime)
+							document.Metadata[dataRaw.MetadataKeyMinimumSequenceGroup] = minimumGroup
+							document.Metadata[dataRaw.MetadataKeyMinimumSequenceNumber] = minimumNumber
+							document.Metadata[dataRaw.MetadataKeyMaximumSequenceGroup] = maximumGroup
+							document.Metadata[dataRaw.MetadataKeyMaximumSequenceNumber] = maximumNumber
+							return document
+						}
+
+						listIDs := func(filter *dataRaw.Filter, options ...dataRaw.ListOption) []string {
+							result, err := store.List(ctx, userID, filter, nil, options...)
+							Expect(err).ToNot(HaveOccurred())
+							ids := []string{}
+							for _, raw := range result {
+								ids = append(ids, raw.ID)
+							}
+							return ids
+						}
+
+						documentID := func(document *dataRawStoreStructuredMongo.Document) string {
+							return document.AsRaw().ID
+						}
+
+						BeforeEach(func() {
+							dataSetID = dataTest.RandomDataSetID()
+							now = time.Now().UTC().Truncate(time.Millisecond).Add(-time.Hour)
+							from100 = newSequencedDocument(dataSetID, true, now.Add(-6*time.Minute), 0, 100, 0, 199)
+							from50 = newSequencedDocument(dataSetID, true, now.Add(-5*time.Minute), 0, 50, 0, 149)
+							inLaterGroup = newSequencedDocument(dataSetID, true, now.Add(-4*time.Minute), 1, 10, 1, 109)
+							spanningGroups = newSequencedDocument(dataSetID, true, now.Add(-3*time.Minute), 0, 300, 1, 5)
+							unprocessed = newSequencedDocument(dataSetID, false, now.Add(-2*time.Minute), 0, 200, 0, 299)
+							withoutSequence = newDocument(dataSetID, true, now.Add(-time.Minute))
+							inOtherDataSet := newSequencedDocument(dataTest.RandomDataSetID(), true, now, 0, 300, 0, 399)
+							_, err := mongoCollection.InsertMany(context.Background(), test.AsAnyArray(dataRawStoreStructuredMongo.Documents{
+								from100, from50, inLaterGroup, spanningGroups, unprocessed, withoutSequence, inOtherDataSet,
+							}))
+							Expect(err).ToNot(HaveOccurred())
+						})
+
+						It("returns only records entirely in the sequence group, excluding those without a sequence", func() {
+							filter := &dataRaw.Filter{DataSetID: pointer.From(dataSetID), SequenceGroup: pointer.From(int64(0))}
+							Expect(listIDs(filter)).To(ConsistOf(documentID(from100), documentID(from50), documentID(unprocessed)))
+						})
+
+						It("returns only records entirely in another sequence group", func() {
+							filter := &dataRaw.Filter{DataSetID: pointer.From(dataSetID), SequenceGroup: pointer.From(int64(1))}
+							Expect(listIDs(filter)).To(ConsistOf(documentID(inLaterGroup)))
+						})
+
+						It("returns only processed records whose minimum sequence is in the group and after the number, including one spanning groups", func() {
+							filter := &dataRaw.Filter{
+								DataSetID:           pointer.From(dataSetID),
+								Processed:           pointer.From(true),
+								SequenceGroup:       pointer.From(int64(0)),
+								SequenceNumberAfter: pointer.From(int64(50)),
+							}
+							Expect(listIDs(filter)).To(ConsistOf(documentID(from100), documentID(spanningGroups)))
+						})
+
+						It("returns only records whose minimum sequence is in the group and at or after the number", func() {
+							filter := &dataRaw.Filter{
+								DataSetID:          pointer.From(dataSetID),
+								SequenceGroup:      pointer.From(int64(0)),
+								SequenceNumberFrom: pointer.From(int64(100)),
+							}
+							Expect(listIDs(filter)).To(ConsistOf(documentID(from100), documentID(unprocessed), documentID(spanningGroups)))
+						})
+
+						It("returns every record of the group at or after zero", func() {
+							filter := &dataRaw.Filter{
+								DataSetID:          pointer.From(dataSetID),
+								SequenceGroup:      pointer.From(int64(0)),
+								SequenceNumberFrom: pointer.From(int64(0)),
+							}
+							Expect(listIDs(filter)).To(ConsistOf(documentID(from100), documentID(from50), documentID(unprocessed), documentID(spanningGroups)))
+						})
+
+						Context("with processed ordinals", func() {
+							BeforeEach(func() {
+								for ordinal, document := range []*dataRawStoreStructuredMongo.Document{from100, from50, spanningGroups} {
+									_, err := mongoCollection.UpdateOne(context.Background(), bson.M{"_id": document.ID}, bson.M{"$set": bson.M{"metadata.processedOrdinal": float64(ordinal + 1)}})
+									Expect(err).ToNot(HaveOccurred())
+								}
+							})
+
+							It("returns only records with a processed ordinal at or after the one given", func() {
+								filter := &dataRaw.Filter{DataSetID: pointer.From(dataSetID), Processed: pointer.From(true), ProcessedOrdinalFrom: pointer.From(int64(2))}
+								Expect(listIDs(filter)).To(ConsistOf(documentID(from50), documentID(spanningGroups)))
+							})
+
+							It("uses the processed ordinal index", func() {
+								explain := bson.M{}
+								command := bson.D{
+									{Key: "explain", Value: bson.D{
+										{Key: "find", Value: mongoCollection.Name()},
+										{Key: "filter", Value: bson.M{
+											"userId":                    userID,
+											"dataSetId":                 dataSetID,
+											"processedTime":             bson.M{"$exists": true},
+											"metadata.processedOrdinal": bson.M{"$gte": int64(2)},
+										}},
+									}},
+								}
+								Expect(mongoCollection.Database().RunCommand(ctx, command).Decode(&explain)).To(Succeed())
+								plan, err := bson.MarshalExtJSON(explain["queryPlanner"], false, false)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(string(plan)).To(ContainSubstring("UserIdDataSetIdProcessedOrdinal"))
+							})
+						})
+
+						It("returns records of any processed state when processed is not specified", func() {
+							filter := &dataRaw.Filter{
+								DataSetID:           pointer.From(dataSetID),
+								SequenceGroup:       pointer.From(int64(0)),
+								SequenceNumberAfter: pointer.From(int64(50)),
+							}
+							Expect(listIDs(filter)).To(ConsistOf(documentID(from100), documentID(unprocessed), documentID(spanningGroups)))
+						})
+
+						It("returns empty when no minimum sequence number in the group is after the number", func() {
+							filter := &dataRaw.Filter{
+								DataSetID:           pointer.From(dataSetID),
+								SequenceGroup:       pointer.From(int64(0)),
+								SequenceNumberAfter: pointer.From(int64(300)),
+							}
+							Expect(listIDs(filter)).To(BeEmpty())
+						})
+
+						It("combines the sequence group with the archivable filter", func() {
+							filter := &dataRaw.Filter{
+								DataSetID:     pointer.From(dataSetID),
+								Archivable:    pointer.From(false),
+								SequenceGroup: pointer.From(int64(0)),
+							}
+							Expect(listIDs(filter)).To(ConsistOf(documentID(from100), documentID(from50), documentID(unprocessed)))
+						})
+
+						It("sorts by created time by default", func() {
+							filter := &dataRaw.Filter{DataSetID: pointer.From(dataSetID)}
+							Expect(listIDs(filter)).To(Equal([]string{
+								documentID(from100), documentID(from50), documentID(inLaterGroup), documentID(spanningGroups), documentID(unprocessed), documentID(withoutSequence),
+							}))
+						})
+
+						It("sorts by minimum sequence group, then number, then created time, with records without a sequence first", func() {
+							sameSequence := newSequencedDocument(dataSetID, false, now.Add(-7*time.Minute), 0, 100, 0, 101)
+							_, err := mongoCollection.InsertOne(context.Background(), sameSequence)
+							Expect(err).ToNot(HaveOccurred())
+							filter := &dataRaw.Filter{DataSetID: pointer.From(dataSetID)}
+							Expect(listIDs(filter, dataRaw.WithSort(dataRaw.SortSequence))).To(Equal([]string{
+								documentID(withoutSequence), documentID(from50), documentID(sameSequence), documentID(from100), documentID(unprocessed), documentID(spanningGroups), documentID(inLaterGroup),
+							}))
+						})
+
+						It("sorts the records of the sequence group by sequence", func() {
+							filter := &dataRaw.Filter{DataSetID: pointer.From(dataSetID), SequenceGroup: pointer.From(int64(0))}
+							Expect(listIDs(filter, dataRaw.WithSort(dataRaw.SortSequence))).To(Equal([]string{
+								documentID(from50), documentID(from100), documentID(unprocessed),
+							}))
 						})
 					})
 				})
@@ -508,6 +728,17 @@ var _ = Describe("Mongo", func() {
 						var storedDocument dataRawStoreStructuredMongo.Document
 						Expect(mongoCollection.FindOne(context.Background(), bson.M{"_id": objectID}).Decode(&storedDocument)).To(Succeed())
 						Expect(storedDocument.Compressed).To(BeFalse())
+					})
+
+					It("creates the raw even when the context is cancelled", func() {
+						cancelledCtx, cancel := context.WithCancel(ctx)
+						cancel()
+						result, err := store.Create(cancelledCtx, userID, dataSetID, create, bytes.NewReader(test.RandomBytes()))
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+						objectID, _, err := dataRawStoreStructuredMongo.ObjectIDAndDateFromID(result.ID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(mongoCollection.CountDocuments(context.Background(), bson.M{"_id": objectID})).To(Equal(int64(1)))
 					})
 
 					It("stores compressed data when data is large enough to benefit from compression", func() {
@@ -835,7 +1066,7 @@ var _ = Describe("Mongo", func() {
 						_, err = mongoCollection.InsertMany(context.Background(), bson.A{bson.M{"_id": objectID, "compressed": "invalid"}})
 						Expect(err).ToNot(HaveOccurred())
 						result, err := store.Update(ctx, id, nil, update)
-						errorsTest.ExpectEqual(err, errors.New("unable to get raw after update"))
+						errorsTest.ExpectEqual(err, errors.New("unable to update raw"))
 						Expect(result).To(BeNil())
 					})
 
@@ -909,6 +1140,62 @@ var _ = Describe("Mongo", func() {
 								Expect(result.Metadata).To(Equal(document.Metadata))
 							}
 							Expect(result.ModifiedTime).To(PointTo(BeTemporally("~", time.Now(), time.Second)))
+						})
+
+						It("updates when the context is cancelled", func() {
+							cancelledCtx, cancel := context.WithCancel(ctx)
+							cancel()
+							condition = nil
+							result, err := store.Update(cancelledCtx, id, nil, update)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(result).ToNot(BeNil())
+						})
+
+						Context("processed", func() {
+							BeforeEach(func() {
+								condition = nil
+								processedTime := time.Now().UTC().Truncate(time.Millisecond)
+								_, err := mongoCollection.UpdateOne(context.Background(), bson.M{"_id": document.ID}, bson.M{"$set": bson.M{"processedTime": processedTime, "archivableTime": processedTime}, "$unset": bson.M{"archivedTime": true}})
+								Expect(err).ToNot(HaveOccurred())
+								document.ArchivedTime = nil
+							})
+
+							It("clears the processed and archivable times and keeps the rest", func() {
+								update = &dataRaw.Update{ClearProcessed: true}
+								result, err := store.Update(ctx, id, nil, update)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(result).ToNot(BeNil())
+								Expect(result.ProcessedTime).To(BeNil())
+								Expect(result.ArchivableTime).To(BeNil())
+								Expect(result.ArchivedTime).To(Equal(document.ArchivedTime))
+								Expect(result.Metadata).To(Equal(document.Metadata))
+								Expect(result.Revision).To(Equal(document.Revision + 1))
+								Expect(result.ModifiedTime).To(PointTo(BeTemporally("~", time.Now(), time.Second)))
+							})
+
+							It("clears the processed state and sets the metadata in one update", func() {
+								metadata := map[string]any{"rewind": true}
+								update = &dataRaw.Update{ClearProcessed: true, Metadata: &metadata}
+								result, err := store.Update(ctx, id, nil, update)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(result).ToNot(BeNil())
+								Expect(result.ProcessedTime).To(BeNil())
+								Expect(result.Metadata).To(Equal(metadata))
+							})
+
+							It("returns nil and changes nothing when the raw is archived", func() {
+								archivedTime := time.Now().UTC().Truncate(time.Millisecond)
+								_, err := mongoCollection.UpdateOne(context.Background(), bson.M{"_id": document.ID}, bson.M{"$set": bson.M{"archivedTime": archivedTime}})
+								Expect(err).ToNot(HaveOccurred())
+								update = &dataRaw.Update{ClearProcessed: true}
+								result, err := store.Update(ctx, id, nil, update)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(result).To(BeNil())
+								stored, err := store.Get(ctx, id, nil)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(stored.ProcessedTime).ToNot(BeNil())
+								Expect(stored.Revision).To(Equal(document.Revision))
+							})
 						})
 					})
 				})
@@ -1318,6 +1605,13 @@ var _ = Describe("Mongo", func() {
 					"ModifiedTime":   Equal(document.ModifiedTime),
 					"Revision":       Equal(document.Revision),
 				})))
+			})
+		})
+
+		Context("AsRaw with nested metadata", func() {
+			It("returns nested arrays as slices", func() {
+				document.Metadata = map[string]any{"array": bson.A{map[string]any{"array": bson.A{"value"}}}}
+				Expect(document.AsRaw().Metadata).To(Equal(map[string]any{"array": []any{map[string]any{"array": []any{"value"}}}}))
 			})
 		})
 

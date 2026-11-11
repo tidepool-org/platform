@@ -33,7 +33,18 @@ const (
 	IDDateFormat = time.DateOnly
 
 	CompressionFactorMinimum = 0.1
+
+	metadataKeyMinimumSequenceGroup  = "metadata." + dataRaw.MetadataKeyMinimumSequenceGroup
+	metadataKeyMinimumSequenceNumber = "metadata." + dataRaw.MetadataKeyMinimumSequenceNumber
+	metadataKeyProcessedOrdinal      = "metadata." + dataRaw.MetadataKeyProcessedOrdinal
+	metadataKeyMaximumSequenceGroup  = "metadata." + dataRaw.MetadataKeyMaximumSequenceGroup
 )
+
+var sorts = map[string]bson.D{
+	dataRaw.SortCreatedTime: {{Key: "createdTime", Value: 1}},
+	// Raw data without a sequence sorts first, as missing fields sort before numbers
+	dataRaw.SortSequence: {{Key: metadataKeyMinimumSequenceGroup, Value: 1}, {Key: metadataKeyMinimumSequenceNumber, Value: 1}, {Key: "createdTime", Value: 1}},
+}
 
 type Store struct {
 	*storeStructuredMongo.Store
@@ -62,10 +73,49 @@ func (s *Store) EnsureIndexes() error {
 			Options: mongoOptions.Index().
 				SetName("UserIdDataSetIdCreatedTime"),
 		},
+		{
+			Keys: bson.D{
+				{Key: "userId", Value: 1},
+				{Key: "dataSetId", Value: 1},
+				{Key: "processedTime", Value: 1},
+				{Key: "mediaType", Value: 1},
+				{Key: metadataKeyMinimumSequenceGroup, Value: 1},
+				{Key: metadataKeyMinimumSequenceNumber, Value: 1},
+				{Key: "createdTime", Value: 1},
+			},
+			Options: mongoOptions.Index().
+				SetName("UserIdDataSetIdProcessedTimeMediaTypeMinimumSequenceCreatedTime"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "userId", Value: 1},
+				{Key: "dataSetId", Value: 1},
+				{Key: metadataKeyMinimumSequenceGroup, Value: 1},
+				{Key: metadataKeyMinimumSequenceNumber, Value: 1},
+			},
+			Options: mongoOptions.Index().
+				SetPartialFilterExpression(bson.D{
+					{Key: "processedTime", Value: bson.M{"$exists": true}},
+					{Key: metadataKeyMinimumSequenceGroup, Value: bson.M{"$exists": true}},
+				}).
+				SetName("UserIdDataSetIdProcessedMinimumSequence"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "userId", Value: 1},
+				{Key: "dataSetId", Value: 1},
+				{Key: metadataKeyProcessedOrdinal, Value: 1},
+			},
+			Options: mongoOptions.Index().
+				SetPartialFilterExpression(bson.D{
+					{Key: metadataKeyProcessedOrdinal, Value: bson.M{"$exists": true}},
+				}).
+				SetName("UserIdDataSetIdProcessedOrdinal"),
+		},
 	})
 }
 
-func (s *Store) List(ctx context.Context, userID string, filter *dataRaw.Filter, pagination *page.Pagination) ([]*dataRaw.Raw, error) {
+func (s *Store) List(ctx context.Context, userID string, filter *dataRaw.Filter, pagination *page.Pagination, options ...dataRaw.ListOption) ([]*dataRaw.Raw, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -84,8 +134,13 @@ func (s *Store) List(ctx context.Context, userID string, filter *dataRaw.Filter,
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
+	sort := dataRaw.ListOptions(options).Sort()
+	sortDocument, ok := sorts[sort]
+	if !ok {
+		return nil, errors.New("sort is invalid")
+	}
 
-	ctx, lgr := log.ContextAndLoggerWithFields(ctx, log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
+	ctx, lgr := log.ContextAndLoggerWithFields(ctx, log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "sort": sort})
 
 	now := time.Now()
 	defer func() { lgr.WithField("duration", time.Since(now)/time.Microsecond).Debug("List") }()
@@ -116,9 +171,25 @@ func (s *Store) List(ctx context.Context, userID string, filter *dataRaw.Filter,
 	if filter.Archived != nil {
 		query["archivedTime"] = bson.M{"$exists": *filter.Archived}
 	}
+	if filter.MediaTypes != nil {
+		query["mediaType"] = bson.M{"$in": *filter.MediaTypes}
+	}
+	if filter.SequenceGroup != nil {
+		query[metadataKeyMinimumSequenceGroup] = *filter.SequenceGroup
+		if filter.SequenceNumberAfter != nil {
+			query[metadataKeyMinimumSequenceNumber] = bson.M{"$gt": *filter.SequenceNumberAfter}
+		} else if filter.SequenceNumberFrom != nil {
+			query[metadataKeyMinimumSequenceNumber] = bson.M{"$gte": *filter.SequenceNumberFrom}
+		} else {
+			query[metadataKeyMaximumSequenceGroup] = *filter.SequenceGroup
+		}
+	}
+	if filter.ProcessedOrdinalFrom != nil {
+		query[metadataKeyProcessedOrdinal] = bson.M{"$gte": *filter.ProcessedOrdinalFrom}
+	}
 
 	opts := storeStructuredMongo.FindWithPagination(pagination).
-		SetSort(bson.M{"createdTime": 1}).
+		SetSort(sortDocument).
 		SetProjection(bson.M{"data": 0})
 	documents, err := s.findMany(ctx, query, opts)
 	if err != nil {
@@ -380,28 +451,29 @@ func (s *Store) Update(ctx context.Context, id string, condition *storeStructure
 	if update.Metadata != nil {
 		set["metadata"] = *update.Metadata
 	}
+	unset := bson.M{}
+	if update.ClearProcessed {
+		query["archivedTime"] = bson.M{"$exists": false} // An archived raw has no content left to process again
+		unset["processedTime"] = true
+		unset["archivableTime"] = true
+	}
 
 	// Do not interrupt normally, but do enforce a reasonable timeout
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 	defer cancel()
 
-	if err = s.FindOneAndUpdate(ctx, query, s.ConstructUpdate(set, nil)).Err(); err != nil {
+	// Returns the document as written, so the caller sees its own write rather than a later one
+	opts := mongoOptions.FindOneAndUpdate().
+		SetReturnDocument(mongoOptions.After).
+		SetProjection(bson.M{"data": 0})
+	var document *Document
+	if err = s.FindOneAndUpdate(ctx, query, s.ConstructUpdate(set, unset), opts).Decode(&document); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
 		} else {
 			lgr.WithError(err).Error("unable to update raw")
 			return nil, errors.Wrap(err, "unable to update raw")
 		}
-	}
-
-	query = bson.M{"_id": objectID}
-	document, err := s.findOne(ctx, query)
-	lgr = lgr.WithError(err)
-	if err != nil {
-		lgr.Error("unable to get raw after update")
-		return nil, errors.Wrap(err, "unable to get raw after update")
-	} else if document == nil {
-		return nil, nil
 	}
 
 	return document.AsRaw(), nil
@@ -592,7 +664,7 @@ func (d *Document) AsRaw() *dataRaw.Raw {
 		ID:             IDFromObjectIDAndDate(d.ID, d.CreatedTime),
 		UserID:         d.UserID,
 		DataSetID:      d.DataSetID,
-		Metadata:       d.Metadata,
+		Metadata:       storeStructuredMongo.BSONToMap(d.Metadata),
 		DigestMD5:      d.DigestMD5,
 		DigestSHA256:   d.DigestSHA256,
 		MediaType:      d.MediaType,
