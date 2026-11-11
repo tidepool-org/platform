@@ -16,7 +16,10 @@ import (
 	abbottWork "github.com/tidepool-org/platform-plugin-abbott/abbott/work"
 	"github.com/tidepool-org/platform-plugin-tandem/tandem"
 	tandemClient "github.com/tidepool-org/platform-plugin-tandem/tandem/client"
+	tandemCloudDrivers "github.com/tidepool-org/platform-plugin-tandem/tandem/clouddrivers"
+	tandemEventHub "github.com/tidepool-org/platform-plugin-tandem/tandem/eventhub"
 	tandemProvider "github.com/tidepool-org/platform-plugin-tandem/tandem/provider"
+	tandemWork "github.com/tidepool-org/platform-plugin-tandem/tandem/work"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/auth"
@@ -99,6 +102,8 @@ type Standard struct {
 	notificationsHistoryRecorder   notificationsHistory.Recorder
 	abbottClient                   *abbottClient.Client
 	tandemClient                   *tandemClient.Client
+	tandemCloudDriversClient       *tandemCloudDrivers.Client
+	tandemEventHubConsumer         *tandemEventHub.Consumer
 	ouraClient                     *ouraClient.Client
 	userClient                     user.Client
 	confirmationClient             confirmationClient.ClientWithResponsesInterface
@@ -177,6 +182,9 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeTandemClient(); err != nil {
 		return err
 	}
+	if err := s.initializeTandemCloudDriversClient(); err != nil {
+		return err
+	}
 	if err := s.initializeOuraClient(); err != nil {
 		return err
 	}
@@ -187,6 +195,9 @@ func (s *Standard) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeUserEventsHandler(); err != nil {
+		return err
+	}
+	if err := s.initializeTandemEventHubConsumer(); err != nil {
 		return err
 	}
 	if err := s.initializeTwiistServiceAccountAuthorizer(); err != nil {
@@ -207,6 +218,11 @@ func (s *Standard) Terminate() {
 	}
 	s.api = nil
 	s.twiistServiceAccountAuthorizer = nil
+	if s.tandemEventHubConsumer != nil {
+		s.Logger().Debug("Terminating the tandem event hub consumer")
+		s.tandemEventHubConsumer.Stop()
+		s.tandemEventHubConsumer = nil
+	}
 	if s.userEventsHandler != nil {
 		s.Logger().Debug("Terminating the userEventsHandler")
 		if err := s.userEventsHandler.Terminate(); err != nil {
@@ -219,6 +235,7 @@ func (s *Standard) Terminate() {
 		s.workCoordinator = nil
 	}
 	s.ouraClient = nil
+	s.tandemCloudDriversClient = nil
 	s.tandemClient = nil
 	s.abbottClient = nil
 	s.workClient = nil
@@ -262,6 +279,14 @@ func (s *Standard) Run() error {
 	go func() {
 		errs <- s.userEventsHandler.Run()
 	}()
+	if s.tandemEventHubConsumer != nil {
+		go func() {
+			// Returns nil only once stopped by Terminate, which must not shut down the service
+			if err := s.tandemEventHubConsumer.Run(); err != nil {
+				errs <- err
+			}
+		}()
+	}
 	go func() {
 		errs <- s.server.Serve()
 	}()
@@ -742,6 +767,35 @@ func (s *Standard) initializeTandemClient() error {
 	return nil
 }
 
+// initializeTandemCloudDriversClient creates the client only where the cloud-drivers service is deployed.
+func (s *Standard) initializeTandemCloudDriversClient() error {
+	if s.tandemClient == nil {
+		return nil
+	}
+
+	s.Logger().Debug("Loading tandem cloud drivers client config")
+
+	cfg := platform.NewConfig()
+	cfg.UserAgent = s.UserAgent()
+	if err := cfg.Load(platform.NewConfigReporterLoader(s.ConfigReporter().WithScopes("cloud_drivers", "client"))); err != nil {
+		return errors.Wrap(err, "unable to load tandem cloud drivers client config")
+	}
+	if cfg.Address == "" {
+		s.Logger().Warn("Tandem cloud drivers client address is missing, pump logs will not be processed")
+		return nil
+	}
+
+	s.Logger().Debug("Creating tandem cloud drivers client")
+
+	clnt, err := tandemCloudDrivers.NewClient(cfg)
+	if err != nil {
+		return errors.Wrap(err, "unable to create tandem cloud drivers client")
+	}
+	s.tandemCloudDriversClient = clnt
+
+	return nil
+}
+
 func (s *Standard) initializeOuraClient() error {
 	s.Logger().Debug("Loading oura provider")
 
@@ -904,6 +958,25 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 		}
 	}
 
+	if s.tandemClient != nil {
+		s.Logger().Debug("Creating tandem processor factories")
+
+		tandemProcessorDependencies := tandemWork.ProcessorDependencies{
+			Dependencies:            dependencies,
+			DataClient:              s.dataClient,
+			DataDeduplicatorFactory: s.dataDeduplicatorFactory,
+			DataSetClient:           s.dataClient,
+			DataSourceClient:        s.dataSourceClient,
+			DataRawClient:           s.dataRawClient,
+			CloudDriversClient:      s.tandemCloudDriversClient,
+		}
+		if tandemProcessorFactories, err := tandemWork.NewProcessorFactories(tandemProcessorDependencies); err != nil {
+			return errors.Wrap(err, "unable to create tandem processor factories")
+		} else {
+			processorFactories = append(processorFactories, tandemProcessorFactories...)
+		}
+	}
+
 	if s.ouraClient != nil {
 		s.Logger().Debug("Creating oura data event work processor factory")
 
@@ -1035,6 +1108,30 @@ func (s *Standard) initializeUserEventsHandler() error {
 		return errors.Wrap(err, "unable to initialize user events handler runner")
 	}
 	s.userEventsHandler = runner
+
+	return nil
+}
+
+func (s *Standard) initializeTandemEventHubConsumer() error {
+	if s.tandemClient == nil {
+		return nil
+	}
+
+	s.Logger().Debug("Creating tandem event hub consumer")
+
+	consumer, err := tandemEventHub.NewConsumer(tandemEventHub.ConsumerDependencies{
+		Logger:                     s.Logger(),
+		ServerSessionTokenProvider: s.AuthClient(),
+		ProviderSessionClient:      s.AuthClient(),
+		DataSourceClient:           s.dataSourceClient,
+		DataSetClient:              s.dataClient,
+		DataRawClient:              s.dataRawClient,
+		WorkClient:                 s.workClient,
+	})
+	if err != nil {
+		return errors.Wrap(err, "unable to create tandem event hub consumer")
+	}
+	s.tandemEventHubConsumer = consumer // nil when the feed is not configured for this environment
 
 	return nil
 }
