@@ -33,13 +33,14 @@ func RandomSequenceNumber() int64 {
 
 func RandomFilter(options ...test.Option) *dataRaw.Filter {
 	filter := &dataRaw.Filter{
-		CreatedDate:   test.RandomOptional(RandomCreatedDate, options...),
-		DataSetID:     test.RandomOptional(dataTest.RandomDataSetID, options...),
-		Processed:     test.RandomOptional(test.RandomBool, options...),
-		Archivable:    test.RandomOptional(test.RandomBool, options...),
-		Archived:      test.RandomOptional(test.RandomBool, options...),
-		MediaTypes:    test.RandomOptional(func() []string { return netTest.RandomMediaTypes(1, 3) }, options...),
-		SequenceGroup: test.RandomOptional(RandomSequenceNumber, options...),
+		CreatedDate:      test.RandomOptional(RandomCreatedDate, options...),
+		CreatedTimeStart: test.RandomOptional(test.RandomTimeBeforeNow, options...),
+		DataSetID:        test.RandomOptional(dataTest.RandomDataSetID, options...),
+		Processed:        test.RandomOptional(test.RandomBool, options...),
+		Archivable:       test.RandomOptional(test.RandomBool, options...),
+		Archived:         test.RandomOptional(test.RandomBool, options...),
+		MediaTypes:       test.RandomOptional(func() []string { return netTest.RandomMediaTypes(1, 3) }, options...),
+		SequenceGroup:    test.RandomOptional(RandomSequenceNumber, options...),
 	}
 	if filter.SequenceGroup != nil {
 		filter.SequenceNumberAfter = test.RandomOptional(RandomSequenceNumber, options...)
@@ -57,6 +58,7 @@ func CloneFilter(datum *dataRaw.Filter) *dataRaw.Filter {
 	}
 	return &dataRaw.Filter{
 		CreatedDate:          pointer.CloneString(datum.CreatedDate),
+		CreatedTimeStart:     pointer.CloneTime(datum.CreatedTimeStart),
 		DataSetID:            pointer.CloneString(datum.DataSetID),
 		Processed:            pointer.CloneBool(datum.Processed),
 		Archivable:           pointer.CloneBool(datum.Archivable),
@@ -76,6 +78,9 @@ func NewObjectFromFilter(datum *dataRaw.Filter, objectFormat test.ObjectFormat) 
 	object := map[string]any{}
 	if datum.CreatedDate != nil {
 		object["createdDate"] = test.NewObjectFromString(*datum.CreatedDate, objectFormat)
+	}
+	if datum.CreatedTimeStart != nil {
+		object["createdTimeStart"] = test.NewObjectFromTime(*datum.CreatedTimeStart, objectFormat)
 	}
 	if datum.DataSetID != nil {
 		object["dataSetId"] = test.NewObjectFromString(*datum.DataSetID, objectFormat)
