@@ -10,6 +10,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 
 	abbottServiceApiV1 "github.com/tidepool-org/platform-plugin-abbott/abbott/service/api/v1"
+	tandemServiceApiV1 "github.com/tidepool-org/platform-plugin-tandem/tandem/service/api/v1"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/service"
@@ -50,6 +51,7 @@ func Routes() []service.Route {
 	routes = append(routes, WorkRoutes()...)
 	routes = append(routes, abbottServiceApiV1.Routes()...)
 	routes = append(routes, ouraServiceApiV1.Routes()...)
+	routes = append(routes, TandemRoutes()...)
 
 	return routes
 }
@@ -102,3 +104,14 @@ type tokenClaims struct {
 }
 
 var _ jwt.Claims = (*tokenClaims)(nil)
+
+// TandemRoutes adapts the Tandem plugin routes, which are declared without this package so the plugin does
+// not depend on the other plugins through it.
+func TandemRoutes() []service.Route {
+	var routes []service.Route
+	for _, route := range tandemServiceApiV1.Routes() {
+		handler := func(context service.Context) { route.Handler(context) }
+		routes = append(routes, service.MakeRoute(route.Method, route.Path, handler, route.Middleware...))
+	}
+	return routes
+}

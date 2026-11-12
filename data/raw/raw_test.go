@@ -102,6 +102,7 @@ var _ = Describe("Raw", func() {
 			Entry("all",
 				func(datum *dataRaw.Filter) {
 					datum.CreatedDate = pointer.From(dataRawTest.RandomCreatedDate())
+					datum.CreatedTimeStart = pointer.From(test.RandomTimeBeforeNow())
 					datum.DataSetID = pointer.From(dataTest.RandomDataSetID())
 					datum.Processed = pointer.From(test.RandomBool())
 					datum.Archivable = pointer.From(test.RandomBool())
@@ -131,6 +132,7 @@ var _ = Describe("Raw", func() {
 				Entry("multiple",
 					func(object map[string]any, expectedDatum *dataRaw.Filter) {
 						object["createdDate"] = true
+						object["createdTimeStart"] = true
 						object["dataSetId"] = true
 						object["processed"] = ""
 						object["archivable"] = ""
@@ -141,6 +143,7 @@ var _ = Describe("Raw", func() {
 						object["sequenceNumberFrom"] = ""
 						object["processedOrdinalFrom"] = ""
 						expectedDatum.CreatedDate = nil
+						expectedDatum.CreatedTimeStart = nil
 						expectedDatum.DataSetID = nil
 						expectedDatum.Processed = nil
 						expectedDatum.Archivable = nil
@@ -152,6 +155,7 @@ var _ = Describe("Raw", func() {
 						expectedDatum.ProcessedOrdinalFrom = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/createdDate"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/createdTimeStart"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/dataSetId"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool(""), "/processed"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool(""), "/archivable"),
@@ -190,6 +194,13 @@ var _ = Describe("Raw", func() {
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/createdDate"),
 				),
+				Entry("createdTimeStart missing",
+					func(datum *dataRaw.Filter) { datum.CreatedTimeStart = nil },
+				),
+				Entry("createdTimeStart zero",
+					func(datum *dataRaw.Filter) { datum.CreatedTimeStart = pointer.From(time.Time{}) },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/createdTimeStart"),
+				),
 				Entry("dataSetId missing",
 					func(datum *dataRaw.Filter) { datum.DataSetID = nil },
 				),
@@ -223,6 +234,7 @@ var _ = Describe("Raw", func() {
 					func(datum *dataRaw.Filter) {
 						datum.SequenceGroup = nil
 						datum.SequenceNumberAfter = nil
+						datum.SequenceNumberFrom = nil
 					},
 				),
 				Entry("sequenceGroup and sequenceNumberAfter zero",
