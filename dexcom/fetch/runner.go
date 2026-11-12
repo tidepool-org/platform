@@ -35,6 +35,7 @@ const (
 	TaskDurationMaximum          = 15 * time.Minute
 	TaskRetryCountMaximum        = 4                // Last retry after ~(AvailableAfterDuration * (2^TaskRetryCountMaximum - 1)) hours (discounting AvailableAfterDurationJitter)
 	DataRangeDaysMaximum         = 30               // Per Dexcom documentation
+	TimePrecision                = time.Millisecond // Per Dexcom documentation, may include milliseconds
 	ResumeAfterDuration          = 1 * time.Minute  // Resume interrupted work after a short delay, so that a later run can pick up where the previous one left off
 	ResumeExpirationDuration     = 10 * time.Minute // Several times ResumeAfterDuration, so ordinary queue lag is tolerated but a long wait is not
 )
@@ -520,8 +521,8 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 			return err
 		}
 
-		// Next fetch starts at the end of the last fetch, since Dexcom data ranges are inclusive of the start and
-		// end times, so that no data is missed.
+		// Next fetch starts at the end of the last fetch, since Dexcom queries are inclusive of the start time and
+		// exclusive of the end time (per Dexcom documentation), so that no data is missed or fetched twice.
 		startTime = endTime
 
 		// If no more remains to fetch, then indicate import completed.
@@ -567,9 +568,11 @@ func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
 		return nil, nil
 	}
 
+	// The data range end is the time of the latest record, but Dexcom queries are exclusive of the end time (per Dexcom
+	// documentation), so extend the end time just past it, otherwise the latest record is never fetched
 	return &DataRange{
 		StartTime: startTime,
-		EndTime:   endTime,
+		EndTime:   endTime.Add(TimePrecision),
 	}, nil
 }
 
@@ -667,7 +670,7 @@ func (t *TaskRunner) fetchAlerts(startTime time.Time, endTime time.Time) (data.D
 
 	datumArray := data.Data{}
 	for _, alert := range alerts {
-		if time := alert.SystemTime.Raw(); time != nil && InTimeRange(*time, startTime, endTime) {
+		if time := alert.SystemTime.Raw(); time != nil && InTimeRange(*time, startTime, endTime) && t.afterLatestDataTime(time) {
 			datumArray = append(datumArray, translateAlertToDatum(t.context, alert, response.RecordVersion))
 		}
 	}
@@ -696,7 +699,7 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 
 	datumArray := data.Data{}
 	for _, calibration := range calibrations {
-		if time := calibration.SystemTime.Raw(); time != nil && InTimeRange(*time, startTime, endTime) {
+		if time := calibration.SystemTime.Raw(); time != nil && InTimeRange(*time, startTime, endTime) && t.afterLatestDataTime(time) {
 			datumArray = append(datumArray, translateCalibrationToDatum(t.context, calibration))
 		}
 	}
@@ -754,7 +757,7 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Dat
 
 	datumArray := data.Data{}
 	for _, egv := range egvs {
-		if time := egv.SystemTime.Raw(); time != nil && InTimeRange(*time, startTime, endTime) {
+		if time := egv.SystemTime.Raw(); time != nil && InTimeRange(*time, startTime, endTime) && t.afterLatestDataTime(time) {
 			datumArray = append(datumArray, translateEGVToDatum(t.context, egv))
 		}
 	}
@@ -785,7 +788,7 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 	for _, event := range events {
 		switch *event.EventStatus {
 		case dexcom.EventStatusCreated:
-			if time := event.SystemTime.Raw(); time != nil && InTimeRange(*time, startTime, endTime) {
+			if time := event.SystemTime.Raw(); time != nil && InTimeRange(*time, startTime, endTime) && t.afterLatestDataTime(time) {
 				switch *event.EventType {
 				case dexcom.EventTypeCarbs:
 					datumArray = append(datumArray, translateEventCarbsToDatum(t.context, event))

@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	DateRangeTimeFormat    = "2006-01-02T15:04:05"
+	DateRangeTimeFormat    = "2006-01-02T15:04:05.000" // Per Dexcom documentation, may include milliseconds
 	SystemTimeNowThreshold = 24 * time.Hour
 
 	DataKeyDataSourceID         = "dataSourceId"

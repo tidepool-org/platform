@@ -366,7 +366,9 @@ var _ = Describe("client", func() {
 				BeforeEach(func() {
 					startTime = test.RandomTimeBeforeNow()
 					endTime = test.RandomTimeFromRange(startTime, time.Now())
-					requestQuery = fmt.Sprintf("startDate=%s&endDate=%s", startTime.UTC().Format(dexcom.DateRangeTimeFormat), endTime.UTC().Format(dexcom.DateRangeTimeFormat))
+					// Explicitly not dexcom.DateRangeTimeFormat, to verify that the query retains milliseconds, since Dexcom
+					// queries are inclusive of the start time and exclusive of the end time down to the millisecond
+					requestQuery = fmt.Sprintf("startDate=%s&endDate=%s", startTime.UTC().Format("2006-01-02T15:04:05.000"), endTime.UTC().Format("2006-01-02T15:04:05.000"))
 				})
 
 				Context("GetAlerts", func() {
