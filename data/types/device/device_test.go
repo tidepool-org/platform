@@ -50,9 +50,6 @@ var _ = Describe("Device", func() {
 	})
 
 	Context("Device", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

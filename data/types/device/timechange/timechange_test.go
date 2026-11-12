@@ -49,9 +49,6 @@ var _ = Describe("TimeChange", func() {
 	})
 
 	Context("TimeChange", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			Context("non-deprecated", func() {

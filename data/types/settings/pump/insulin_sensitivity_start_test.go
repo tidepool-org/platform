@@ -26,10 +26,6 @@ var _ = Describe("InsulinSensitivityStart", func() {
 		Expect(pump.InsulinSensitivityStartStartMinimum).To(Equal(0))
 	})
 
-	Context("ParseInsulinSensitivityStart", func() {
-		// TODO
-	})
-
 	Context("NewInsulinSensitivityStart", func() {
 		It("is successful", func() {
 			Expect(pump.NewInsulinSensitivityStart()).To(Equal(&pump.InsulinSensitivityStart{}))
@@ -37,9 +33,6 @@ var _ = Describe("InsulinSensitivityStart", func() {
 	})
 
 	Context("InsulinSensitivityStart", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -373,10 +366,6 @@ var _ = Describe("InsulinSensitivityStart", func() {
 		})
 	})
 
-	Context("ParseInsulinSensitivityStartArray", func() {
-		// TODO
-	})
-
 	Context("NewInsulinSensitivityStartArray", func() {
 		It("is successful", func() {
 			Expect(pump.NewInsulinSensitivityStartArray()).To(Equal(&pump.InsulinSensitivityStartArray{}))
@@ -384,9 +373,6 @@ var _ = Describe("InsulinSensitivityStart", func() {
 	})
 
 	Context("InsulinSensitivityStartArray", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -585,10 +571,6 @@ var _ = Describe("InsulinSensitivityStart", func() {
 		})
 	})
 
-	Context("ParseInsulinSensitivityStartArrayMap", func() {
-		// TODO
-	})
-
 	Context("NewInsulinSensitivityStartArrayMap", func() {
 		It("is successful", func() {
 			Expect(pump.NewInsulinSensitivityStartArrayMap()).To(Equal(&pump.InsulinSensitivityStartArrayMap{}))
@@ -596,9 +578,6 @@ var _ = Describe("InsulinSensitivityStart", func() {
 	})
 
 	Context("InsulinSensitivityStartArrayMap", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

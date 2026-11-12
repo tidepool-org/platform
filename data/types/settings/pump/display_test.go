@@ -16,9 +16,6 @@ import (
 )
 
 var _ = Describe("Display", func() {
-	Context("ParseDisplay", func() {
-		// TODO
-	})
 
 	Context("NewDisplay", func() {
 		It("is successful", func() {
@@ -27,9 +24,6 @@ var _ = Describe("Display", func() {
 	})
 
 	Context("Display", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

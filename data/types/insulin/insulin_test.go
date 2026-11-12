@@ -62,9 +62,6 @@ var _ = Describe("Insulin", func() {
 	})
 
 	Context("Insulin", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

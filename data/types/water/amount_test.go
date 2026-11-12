@@ -95,10 +95,6 @@ var _ = Describe("Amount", func() {
 		Expect(water.AmountUnits()).To(Equal([]string{"gallons", "liters", "milliliters", "ounces"}))
 	})
 
-	Context("ParseAmount", func() {
-		// TODO
-	})
-
 	Context("NewAmount", func() {
 		It("is successful", func() {
 			Expect(water.NewAmount()).To(Equal(&water.Amount{}))
@@ -106,9 +102,6 @@ var _ = Describe("Amount", func() {
 	})
 
 	Context("Amount", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

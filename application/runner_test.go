@@ -14,9 +14,7 @@ import (
 )
 
 var _ = Describe("Runner", func() {
-	Context("RunAndExit", func() {
-		// NOTE: Cannot be tested due to embedded os.Exit
-	})
+	// RunAndExit cannot be tested here because it calls os.Exit.
 
 	Context("Run", func() {
 		var runner *applicationTest.Runner

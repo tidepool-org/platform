@@ -156,9 +156,6 @@ var _ = Describe("Calculator", func() {
 	})
 
 	Context("Calculator", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

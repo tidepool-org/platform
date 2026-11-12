@@ -44,6 +44,9 @@ else
 endif
 endif
 GOTEST_FLAGS ?=
+# Keep the default CI invocation cacheable. Use ci-test-go-fresh for a full,
+# shuffled run (for example after changing MongoDB or other external inputs).
+GOTEST_CI_FLAGS ?= -buildvcs=false -race -cover
 
 GINKGO_FLAGS += --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r
 GINKGO_CI_WATCH_FLAGS += --randomize-all --succinct --fail-on-pending --cover --trace --race
@@ -60,8 +63,11 @@ TEST_REPEAT ?= 1
 
 DOCKER_LOGIN_CMD ?= docker login
 DOCKER_BUILD_CMD ?= docker build
+DOCKER_BUILD_FLAGS ?=
 DOCKER_PUSH_CMD ?= docker push
 DOCKER_TAG_CMD ?= docker tag
+CI_DOCKER_OUTPUT ?= push
+CI_DOCKER_IMAGE_PREFIX ?= tidepool/$(REPOSITORY_NAME)
 
 ifdef TRAVIS_COMMIT
 ifdef TRAVIS_BRANCH
@@ -154,8 +160,8 @@ ifdef PLUGIN
 	@cd $(ROOT_DIRECTORY) && \
 		{ [ ! -e go.work ] || go work edit -dropuse=./private/plugin/$(PLUGIN); } && \
 		{ [ "`go list -m -mod=readonly`" != "${REPOSITORY_PACKAGE}" ] || rm go.work go.work.sum 2> /dev/null || true; } && \
-		git config set --local submodule.private/plugin/$(PLUGIN).update none && \
-		git config set --file=.gitmodules submodule.private/plugin/$(PLUGIN).update none && \
+		git config --local submodule.private/plugin/$(PLUGIN).update none && \
+		git config --file=.gitmodules submodule.private/plugin/$(PLUGIN).update none && \
 		$(MAKE) plugin-visibility
 endif
 
@@ -166,8 +172,8 @@ plugins-visibility-private:
 plugin-visibility-private:
 ifdef PLUGIN
 	@cd $(ROOT_DIRECTORY) && \
-		{ git config unset --local submodule.private/plugin/$(PLUGIN).update || true; } && \
-		{ git config unset --file=.gitmodules submodule.private/plugin/$(PLUGIN).update || true; } && \
+		{ git config --local --unset submodule.private/plugin/$(PLUGIN).update || true; } && \
+		{ git config --file=.gitmodules --unset submodule.private/plugin/$(PLUGIN).update || true; } && \
 		git submodule update --init private/plugin/$(PLUGIN) && \
 		{ [ -e go.work ] || go work init .; } && \
 		go work edit -use=./private/plugin/$(PLUGIN) && \
@@ -176,7 +182,11 @@ ifdef PLUGIN
 		$(MAKE) plugin-visibility
 endif
 
-ci: ci-init ci-generate ci-build ci-test ci-docker
+ci:
+	@$(TIMING_CMD) $(MAKE) ci-init
+	@$(TIMING_CMD) $(MAKE) ci-generate
+	@$(TIMING_CMD) $(MAKE) ci-test
+	@$(TIMING_CMD) $(MAKE) ci-docker
 
 init: go-mod-download
 
@@ -197,7 +207,11 @@ go-generate: mockgen
 	@cd $(ROOT_DIRECTORY) && \
 		GOWORK=off $(TIMING_CMD) go generate ./...
 
-generate: go-generate format-write imports-write vet
+generate:
+	@$(MAKE) go-generate
+	@$(MAKE) format-write
+	@$(MAKE) imports-write
+	@$(MAKE) vet
 
 ci-generate: generate
 	@cd $(ROOT_DIRECTORY) && \
@@ -207,13 +221,13 @@ ci-generate: generate
 format:
 	@echo "gofmt -d -e -s"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`$(FIND_CMD) -type f -name '*.go' -exec gofmt -d -e -s {} \; 2>&1` && \
+		O=`$(FIND_CMD) -type f -name '*.go' -exec gofmt -d -e -s {} + 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 format-write:
 	@echo "gofmt -e -s -w"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`$(FIND_CMD) -type f -name '*.go' -exec gofmt -e -s -w {} \; 2>&1` && \
+		O=`$(FIND_CMD) -type f -name '*.go' -exec gofmt -e -s -w {} + 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 format-write-changed:
@@ -223,13 +237,13 @@ format-write-changed:
 imports: goimports
 	@echo "goimports -d -e -local $(GOIMPORTS_LOCAL)"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`$(FIND_CMD) -type f -name '*.go' -exec goimports -d -e -local $(GOIMPORTS_LOCAL) {} \; 2>&1` && \
+		O=`$(FIND_CMD) -type f -name '*.go' -exec goimports -d -e -local $(GOIMPORTS_LOCAL) {} + 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports-write: goimports
 	@echo "goimports -e -w -local $(GOIMPORTS_LOCAL)"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`$(FIND_CMD) -type f -name '*.go' -exec goimports -e -w -local $(GOIMPORTS_LOCAL) {} \; 2>&1` && \
+		O=`$(FIND_CMD) -type f -name '*.go' -exec goimports -e -w -local $(GOIMPORTS_LOCAL) {} + 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports-write-changed: goimports
@@ -253,13 +267,17 @@ build:
 	@echo "go build $(BUILD)"
 	@cd $(ROOT_DIRECTORY) && \
 		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
-		$(TIMING_CMD) $(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | while read LINE; do \
-			$(GO_BUILD_CMD) $${GOWORK_FLAGS:-} -o $${LINE}; \
+		$(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | while read LINE; do \
+			$(TIMING_CMD) $(GO_BUILD_CMD) $${GOWORK_FLAGS:-} -o $${LINE} || exit $$?; \
 		done
 
 build-watch: CompileDaemon
 	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make build' -color -directory='.' -exclude-dir='.git' -exclude-dir='.gvm_local' -exclude-dir='.vscode' -exclude='*_test.go' -include='Makefile' -recursive=true
 
+# These binaries also run in the Alpine service images. Build the shipping
+# binaries without a libc dependency, separately from race-enabled tests.
+ci-build: export CGO_ENABLED = 0
+ci-build: export GOOS = linux
 ci-build: build
 
 ci-build-watch: CompileDaemon
@@ -315,9 +333,12 @@ test-go:
 		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
 		. ./env.test.sh && $(TIMING_CMD) go test $(GOTEST_FLAGS) $${GOWORK_FLAGS:-} $(GOTEST_PKGS)
 
-ci-test-go: GOTEST_FLAGS += -count=1 -race -shuffle=on -cover
+ci-test-go: GOTEST_FLAGS += $(GOTEST_CI_FLAGS)
 ci-test-go: GOTEST_PKGS = ./...
 ci-test-go: test-go
+
+ci-test-go-fresh: GOTEST_FLAGS += -count=1 -shuffle=on
+ci-test-go-fresh: ci-test-go
 
 ginkgo-bootstrap: ginkgo
 ifdef TEST
@@ -366,8 +387,8 @@ docker-dump:
 docker:
 ifdef DOCKER
 	@cd $(ROOT_DIRECTORY) && \
-		for SERVICE in $(SERVICES); do $(MAKE) docker-build DOCKER_SERVICE="$${SERVICE}" TIMESTAMP="$(TIMESTAMP)"; done && \
-		for SERVICE in $(SERVICES); do $(MAKE) docker-push DOCKER_SERVICE="$${SERVICE}" TIMESTAMP="$(TIMESTAMP)"; done
+		for SERVICE in $(SERVICES); do $(MAKE) docker-build DOCKER_SERVICE="$${SERVICE}" TIMESTAMP="$(TIMESTAMP)" || exit $$?; done && \
+		for SERVICE in $(SERVICES); do $(MAKE) docker-push DOCKER_SERVICE="$${SERVICE}" TIMESTAMP="$(TIMESTAMP)" || exit $$?; done
 endif
 
 docker-login:
@@ -378,7 +399,7 @@ endif
 docker-build: docker-dump docker-login
 ifdef DOCKER_REPOSITORY
 	@cd $(ROOT_DIRECTORY) && \
-		$(TIMING_CMD) $(DOCKER_BUILD_CMD) --build-arg=PLUGIN_VISIBILITY=$(PLUGIN_VISIBILITY) --target=platform-${DOCKER_SERVICE} --tag $(DOCKER_REPOSITORY) .
+		$(TIMING_CMD) $(DOCKER_BUILD_CMD) $(DOCKER_BUILD_FLAGS) --build-arg=PLUGIN_VISIBILITY=$(PLUGIN_VISIBILITY) --target=platform-${DOCKER_SERVICE} --tag $(DOCKER_REPOSITORY) .
 ifdef DOCKER_TRAVIS_BRANCH
 	@cd $(ROOT_DIRECTORY) && \
 		$(DOCKER_TAG_CMD) $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT)-$(TIMESTAMP) && \
@@ -401,7 +422,30 @@ endif
 endif
 endif
 
-ci-docker: version-write docker
+# A named context overrides the Dockerfile's platform-binaries stage. Always
+# refresh the binaries first, including when ci-docker is invoked on its own.
+ci-docker: export DOCKER_BUILD_FLAGS += --build-context platform-binaries=$(BIN_DIRECTORY) --platform=linux/$(shell go env GOARCH)
+ci-docker: version-write
+	@$(MAKE) ci-build
+ifdef DOCKER_TRAVIS_BRANCH
+	@$(MAKE) ci-docker-publish
+else
+	@$(MAKE) docker
+endif
+
+# One authentication and one parallel Bake invocation for all service images.
+# Additional tags reuse the published manifest without checking layers again.
+ci-docker-publish:
+ifdef DOCKER_TRAVIS_BRANCH
+	@$(TIMING_CMD) $(MAKE) docker-login DOCKER_REPOSITORY="$(CI_DOCKER_IMAGE_PREFIX)"
+	@cd $(ROOT_DIRECTORY) && \
+		CI_IMAGE_PREFIX="$(CI_DOCKER_IMAGE_PREFIX)" \
+		CI_IMAGE_SUFFIX="$(if $(filter private,$(PLUGIN_VISIBILITY)),-private)" \
+		CI_SERVICES="$(SERVICES)" CI_PLUGIN_VISIBILITY="$(PLUGIN_VISIBILITY)" \
+		CI_TAGS="$(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT)-$(TIMESTAMP) $(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT) $(DOCKER_TRAVIS_BRANCH)-latest$(if $(filter master,$(DOCKER_TRAVIS_BRANCH)), latest)" \
+		CI_BIN_DIRECTORY="$(BIN_DIRECTORY)" CI_PLATFORM="linux/$(shell go env GOARCH)" \
+		$(TIMING_CMD) bash ci/publish-images.sh "$(CI_DOCKER_OUTPUT)"
+endif
 
 version-write:
 	@cd $(ROOT_DIRECTORY) && \
@@ -442,9 +486,9 @@ phony:
 	@grep -E '^[^ #]+:( |$$)' $(MAKEFILE) | sed -E 's/^([^ #]+):.*/\1/' | sort -u | xargs echo '.PHONY:' | fold -s -w 80 | sed '$$!s/$$/\\/;2,$$s/^/    /g' >> $(MAKEFILE)
 
 .PHONY: bindir build build-list build-watch buildable ci ci-build \
-    ci-build-watch ci-docker ci-generate ci-init ci-test ci-test-ginkgo \
+    ci-build-watch ci-docker ci-docker-publish ci-generate ci-init ci-test ci-test-ginkgo \
     ci-test-ginkgo-repeat ci-test-ginkgo-until-failure ci-test-ginkgo-watch \
-    ci-test-go clean clean-all clean-bin clean-cover clean-debug clean-generate \
+    ci-test-go ci-test-go-fresh clean clean-all clean-bin clean-cover clean-debug clean-generate \
     clean-test clean-version CompileDaemon default docker docker-build docker-dump \
     docker-login docker-push format format-write format-write-changed generate \
     ginkgo ginkgo-bootstrap ginkgo-generate go-generate go-mod-download go-mod-tidy \

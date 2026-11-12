@@ -81,9 +81,6 @@ var _ = Describe("Change", func() {
 	})
 
 	Context("ReservoirChange", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

@@ -107,9 +107,6 @@ var _ = Describe("Temporary", func() {
 	})
 
 	Context("Temporary", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -457,10 +454,6 @@ var _ = Describe("Temporary", func() {
 		})
 	})
 
-	Context("ParseSuppressedTemporary", func() {
-		// TODO
-	})
-
 	Context("NewSuppressedTemporary", func() {
 		It("returns the expected datum", func() {
 			Expect(temporary.NewSuppressedTemporary()).To(Equal(&temporary.SuppressedTemporary{
@@ -471,9 +464,6 @@ var _ = Describe("Temporary", func() {
 	})
 
 	Context("SuppressedTemporary", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

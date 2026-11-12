@@ -67,10 +67,6 @@ var _ = Describe("ElevationChange", func() {
 		Expect(physical.ElevationChangeUnits()).To(Equal([]string{"feet", "meters"}))
 	})
 
-	Context("ParseElevationChange", func() {
-		// TODO
-	})
-
 	Context("NewElevationChange", func() {
 		It("returns the expected datum", func() {
 			Expect(physical.NewElevationChange()).To(Equal(&physical.ElevationChange{}))
@@ -78,9 +74,6 @@ var _ = Describe("ElevationChange", func() {
 	})
 
 	Context("ElevationChange", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

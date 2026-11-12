@@ -65,9 +65,6 @@ var _ = Describe("Pump", func() {
 	})
 
 	Context("Pump", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

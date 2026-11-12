@@ -32,26 +32,10 @@ var _ = Describe("Deduplicator", func() {
 			),
 		)
 
-		Context("ParseDeduplicatorDescriptor", func() {
-			// TODO
-		})
-
-		Context("ParseDeduplicatorDescriptorDEPRECATED", func() {
-			// TODO
-		})
-
 		Context("NewDeduplicatorDescriptor", func() {
 			It("returns successfully with default values", func() {
 				Expect(data.NewDeduplicatorDescriptor()).To(Equal(&data.DeduplicatorDescriptor{}))
 			})
-		})
-
-		Context("Parse", func() {
-			// TODO
-		})
-
-		Context("ParseDEPRECATED", func() {
-			// TODO
 		})
 
 		Context("Validate", func() {

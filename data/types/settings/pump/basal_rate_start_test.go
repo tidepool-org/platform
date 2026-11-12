@@ -33,10 +33,6 @@ var _ = Describe("BasalRateStart", func() {
 		Expect(pump.BasalRateStartStartMinimum).To(Equal(0))
 	})
 
-	Context("ParseBasalRateStart", func() {
-		// TODO
-	})
-
 	Context("NewBasalRateStart", func() {
 		It("is successful", func() {
 			Expect(pump.NewBasalRateStart()).To(Equal(&pump.BasalRateStart{}))
@@ -44,9 +40,6 @@ var _ = Describe("BasalRateStart", func() {
 	})
 
 	Context("BasalRateStart", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -160,10 +153,6 @@ var _ = Describe("BasalRateStart", func() {
 		})
 	})
 
-	Context("ParseBasalRateStartArray", func() {
-		// TODO
-	})
-
 	Context("NewBasalRateStartArray", func() {
 		It("is successful", func() {
 			Expect(pump.NewBasalRateStartArray()).To(Equal(&pump.BasalRateStartArray{}))
@@ -171,9 +160,6 @@ var _ = Describe("BasalRateStart", func() {
 	})
 
 	Context("BasalRateStartArray", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -312,10 +298,6 @@ var _ = Describe("BasalRateStart", func() {
 		})
 	})
 
-	Context("ParseBasalRateStartArrayMap", func() {
-		// TODO
-	})
-
 	Context("NewBasalRateStartArrayMap", func() {
 		It("is successful", func() {
 			Expect(pump.NewBasalRateStartArrayMap()).To(Equal(&pump.BasalRateStartArrayMap{}))
@@ -323,9 +305,6 @@ var _ = Describe("BasalRateStart", func() {
 	})
 
 	Context("BasalRateStartArrayMap", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

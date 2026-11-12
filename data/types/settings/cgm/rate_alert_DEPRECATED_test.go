@@ -36,10 +36,6 @@ var _ = Describe("RateAlertDEPRECATED", func() {
 		Expect(dataTypesSettingsCgm.RateDEPRECATEDMmolLTwo).To(Equal(0.11101495982091067))
 	})
 
-	Context("ParseFallRateAlertDEPRECATED", func() {
-		// TODO
-	})
-
 	Context("NewFallRateAlertDEPRECATED", func() {
 		It("is successful", func() {
 			Expect(dataTypesSettingsCgm.NewFallRateAlertDEPRECATED()).To(Equal(&dataTypesSettingsCgm.FallRateAlertDEPRECATED{}))
@@ -47,9 +43,6 @@ var _ = Describe("RateAlertDEPRECATED", func() {
 	})
 
 	Context("FallRateAlertDEPRECATED", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -331,10 +324,6 @@ var _ = Describe("RateAlertDEPRECATED", func() {
 		})
 	})
 
-	Context("ParseRiseRateAlertDEPRECATED", func() {
-		// TODO
-	})
-
 	Context("NewRiseRateAlertDEPRECATED", func() {
 		It("is successful", func() {
 			Expect(dataTypesSettingsCgm.NewRiseRateAlertDEPRECATED()).To(Equal(&dataTypesSettingsCgm.RiseRateAlertDEPRECATED{}))
@@ -342,9 +331,6 @@ var _ = Describe("RateAlertDEPRECATED", func() {
 	})
 
 	Context("RiseRateAlertDEPRECATED", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -626,10 +612,6 @@ var _ = Describe("RateAlertDEPRECATED", func() {
 		})
 	})
 
-	Context("ParseRateAlertsDEPRECATED", func() {
-		// TODO
-	})
-
 	Context("NewRateAlertsDEPRECATED", func() {
 		It("is successful", func() {
 			Expect(dataTypesSettingsCgm.NewRateAlertsDEPRECATED()).To(Equal(&dataTypesSettingsCgm.RateAlertsDEPRECATED{}))
@@ -637,9 +619,6 @@ var _ = Describe("RateAlertDEPRECATED", func() {
 	})
 
 	Context("RateAlertsDEPRECATED", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
