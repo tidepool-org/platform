@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/platform"
@@ -54,6 +55,16 @@ func (c *Client) RecordMetric(ctx context.Context, metric string, data ...map[st
 	var requestURL string
 	if details := request.GetAuthDetails(ctx); details.IsService() {
 		requestURL = c.client.ConstructURL("metrics", "server", c.name, metric)
+		if !details.HasToken() {
+			// Fall back to the server session token provider, if one is available
+			if provider := auth.ServerSessionTokenProviderFromContext(ctx); provider != nil {
+				serverSessionToken, err := provider.ServerSessionToken()
+				if err != nil {
+					return errors.Wrap(err, "unable to get server session token")
+				}
+				ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, "", serverSessionToken))
+			}
+		}
 	} else {
 		requestURL = c.client.ConstructURL("metrics", "thisuser", metric)
 	}
