@@ -36,7 +36,8 @@ const (
 
 	// ReasonClinicSync reports the summaries of the user must be sent to the clinic
 	// service again, whether or not they changed, for every glycemic range set their
-	// patient records use; for example because the ranges of a record changed.
+	// patient records use; for example because the ranges of a record changed. It also
+	// triggers an EHR sync, so that a change of ranges reaches the EHR.
 	ReasonClinicSync = "CLINIC_SYNC"
 )
 
@@ -69,9 +70,17 @@ func SyncsClinicSummaries(reasons []string) bool {
 }
 
 // Data added is intentionally absent to prevent continuous data uploads from constantly triggering syncs
+//
+// A clinic sync is present so that a change to the glycemic ranges of a patient record
+// reaches the EHR without waiting for the user's next upload: the summaries for the new
+// ranges are sent to the clinic service first, which notes that a record's summary changed
+// ranges, and the consumer of the orders this sync reschedules sends the EHR only the
+// records whose summary did. A sync requested for another cause, such as a new patient
+// record, changes no summary's ranges, so nothing is sent for it.
 var ehrSyncReasons = mapset.NewSet(
 	ReasonUploadCompleted,
 	ReasonLegacyDataAdded,
+	ReasonClinicSync,
 )
 
 func TriggersEHRSync(reasons []string) bool {

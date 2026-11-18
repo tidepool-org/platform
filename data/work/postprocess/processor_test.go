@@ -592,20 +592,41 @@ var _ = Describe("Processor", func() {
 			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges()), nil)
 			summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(summaryTest.RandomCGMSummary(userID), summaryTest.RandomBGMSummary(userID), nil)
 			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaHighRisk"), gomock.Any()).Return(true, nil)
+			clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
 
 			Expect(process().Result).To(Equal(work.ResultDelete))
 		})
 
 		It("reports nothing when the user has no summaries", func() {
 			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+			clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
 
 			Expect(process().Result).To(Equal(work.ResultDelete))
 		})
 
-		It("does not request an EHR synchronization", func() {
-			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+		// A change of ranges must reach the EHR without waiting for the next upload, and
+		// only once the summaries for the new ranges are with the clinic service
+		It("requests an EHR synchronization after reporting the summaries", func() {
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(newSummariesUpdate(), nil)
+			gomock.InOrder(
+				clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaStandard"), gomock.Any()).Return(true, nil),
+				clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges()), nil),
+				summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(summaryTest.RandomCGMSummary(userID), summaryTest.RandomBGMSummary(userID), nil),
+				clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaHighRisk"), gomock.Any()).Return(true, nil),
+				clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil),
+			)
 
 			Expect(process().Result).To(Equal(work.ResultDelete))
+		})
+
+		It("requests no EHR synchronization when a range set summary can't be reported", func() {
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(newSummariesUpdate(), nil)
+			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaStandard"), gomock.Any()).Return(true, nil)
+			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges()), nil)
+			summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(summaryTest.RandomCGMSummary(userID), summaryTest.RandomBGMSummary(userID), nil)
+			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaHighRisk"), gomock.Any()).Return(false, errorsTest.RandomError())
+
+			Expect(process().Result).To(Equal(work.ResultFailing))
 		})
 	})
 
