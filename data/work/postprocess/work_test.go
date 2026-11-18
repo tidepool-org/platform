@@ -79,6 +79,7 @@ var _ = Describe("Work", func() {
 			Entry("with summary recalculation", []string{dataWorkPostprocess.ReasonSummaryRecalculation}, false),
 			Entry("with upload completed", []string{dataWorkPostprocess.ReasonUploadCompleted}, true),
 			Entry("with legacy data added", []string{dataWorkPostprocess.ReasonLegacyDataAdded}, true),
+			Entry("with clinic sync", []string{dataWorkPostprocess.ReasonClinicSync}, true),
 			Entry("with any reason triggering a synchronization",
 				[]string{dataWorkPostprocess.ReasonDataAdded, dataWorkPostprocess.ReasonUploadCompleted}, true),
 		)
