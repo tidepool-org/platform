@@ -59,15 +59,13 @@ func NewProcessorFactory(dependencies Dependencies) (*workBase.ProcessorFactory,
 	return workBase.NewProcessorFactory(Type, Quantity, Frequency, processorFactory)
 }
 
-// NewWorkCreate returns the work to recalculate every summary once for the given id
-func NewWorkCreate(id string) (*work.Create, error) {
-	if id == "" {
-		return nil, errors.New("id is missing")
-	}
+// NewWorkCreate returns the work to recalculate every summary once for the recalculation
+// identified by [ID].
+func NewWorkCreate() *work.Create {
 	return &work.Create{
 		Type:                    Type,
-		DeduplicationID:         pointer.From(id),
+		DeduplicationID:         pointer.From(ID),
 		ProcessingAvailableTime: time.Now(),
 		ProcessingTimeout:       int(ProcessingTimeout.Seconds()),
-	}, nil
+	}
 }

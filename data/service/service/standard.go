@@ -990,9 +990,8 @@ func (s *Standard) initializeWorkSingletons() error {
 	s.Logger().Debug("Creating data summary recalculate work")
 
 	// The work is discarded as a duplicate once the recalculation with the id has been created
-	if workCreate, err := dataWorkSummaryRecalculate.NewWorkCreate(dataWorkSummaryRecalculate.ID); err != nil {
-		return errors.Wrap(err, "unable to create data summary recalculate work create")
-	} else if _, err = s.workClient.Create(ctx, workCreate); err != nil {
+	workCreate := dataWorkSummaryRecalculate.NewWorkCreate()
+	if _, err := s.workClient.Create(ctx, workCreate); err != nil {
 		return errors.Wrap(err, "unable to create data summary recalculate work")
 	}
 

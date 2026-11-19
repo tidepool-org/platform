@@ -91,15 +91,8 @@ var _ = Describe("factory", func() {
 	})
 
 	Context("NewWorkCreate", func() {
-		It("returns an error if the id is missing", func() {
-			workCreate, err := dataWorkSummaryRecalculate.NewWorkCreate("")
-			Expect(err).To(MatchError("id is missing"))
-			Expect(workCreate).To(BeNil())
-		})
-
 		It("returns work deduplicated by the id and available now", func() {
-			workCreate, err := dataWorkSummaryRecalculate.NewWorkCreate(dataWorkSummaryRecalculate.ID)
-			Expect(err).ToNot(HaveOccurred())
+			workCreate := dataWorkSummaryRecalculate.NewWorkCreate()
 			Expect(workCreate).To(PointTo(MatchAllFields(Fields{
 				"Type":                    Equal(dataWorkSummaryRecalculate.Type),
 				"GroupID":                 BeNil(),
