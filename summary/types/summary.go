@@ -18,17 +18,25 @@ const (
 	SummaryTypeBGM        = "bgm"
 	SummaryTypeContinuous = "con"
 
-	// A summary whose schema version doesn't match is recalculated from scratch only the
-	// next time it's updated. If incrementing it requires every summary to be migrated
-	// promptly, then also change the recalculation id in the
+	// SchemaVersion identifies the rules by which a summary was calculated, including how
+	// readings are classified into glucose ranges. It's stored in the config of each
+	// summary. A summary whose schema version doesn't match is recalculated from all of the
+	// user's data, rather than incrementally, the next time it's updated.
+	//
+	// That only happens when the user's data changes. If incrementing it requires every
+	// summary to be migrated promptly, then also change the recalculation id in the
 	// data/work/summary/recalculate package. That recalculates only the CGM and BGM
 	// summaries.
-	SchemaVersion = 6
+	//
+	// Version 7 adopted the gap-based cut points below (BACK-4158).
+	SchemaVersion = 7
 
 	// These values are defined in BACK-4158. They represent the ADA standard glucose
 	// ranges. If they, or how readings are classified against them, are modified, then
-	// change the recalculation id in the data/work/summary/recalculate package, so that
-	// every patient's summary is recalculated based on the modified thresholds.
+	// increment SchemaVersion, so that summaries calculated before and after the change can
+	// be told apart and an update never adds to buckets classified by the previous rules.
+	// Also change the recalculation id in the data/work/summary/recalculate package, so
+	// that every patient's summary is recalculated based on the modified thresholds.
 	//
 	// Readings are compared after normalization to mmol/L, so each cut point sits in the
 	// gap between the nearest whole mg/dL and one-decimal mmol/L values, classifying both
