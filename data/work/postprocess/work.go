@@ -2,11 +2,11 @@ package postprocess
 
 import (
 	"fmt"
-	"slices"
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
 
+	dataWorkSummary "github.com/tidepool-org/platform/data/work/summary"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
 	summaryTypes "github.com/tidepool-org/platform/summary/types"
@@ -28,15 +28,7 @@ const (
 	// ReasonLegacyDataAdded reports jellyfish uploaded a full batch
 	ReasonLegacyDataAdded = "LEGACY_DATA_ADDED"
 
-	// ReasonSummaryRecalculation reports the summaries of the user must be recalculated
-	// from all of their data, rather than incrementally
-	ReasonSummaryRecalculation = "SUMMARY_RECALCULATION"
-)
-
-const (
-	// ProcessingPriorityLow is the priority of work that only recalculates summaries, so
-	// that it yields to work reporting changes to the data of a user
-	ProcessingPriorityLow = -100
+	ReasonSchemaMigration = "SCHEMA_MIGRATION"
 )
 
 const (
@@ -50,7 +42,7 @@ func Reasons() []string {
 		ReasonDataAdded,
 		ReasonUploadCompleted,
 		ReasonLegacyDataAdded,
-		ReasonSummaryRecalculation,
+		ReasonSchemaMigration,
 	}
 }
 
@@ -75,25 +67,6 @@ func shouldDefer(reasons []string) bool {
 		return false
 	}
 	return mapset.NewSet(reasons...).IsSubset(deferrableReasons)
-}
-
-// RecalculatesSummaries reports whether reasons requires summaries to be recalculated from
-// all of the user's data
-func RecalculatesSummaries(reasons []string) bool {
-	return slices.Contains(reasons, ReasonSummaryRecalculation)
-}
-
-// Work that only recalculates summaries has a low priority
-var lowPriorityReasons = mapset.NewSet(
-	ReasonSummaryRecalculation,
-)
-
-// processingPriority reports the processing priority of work with the reasons given
-func processingPriority(reasons []string) int {
-	if len(reasons) > 0 && mapset.NewSet(reasons...).IsSubset(lowPriorityReasons) {
-		return ProcessingPriorityLow
-	}
-	return 0
 }
 
 // IDFromUserID returns both the serial id, which prevents the work of a user being processed
@@ -151,22 +124,6 @@ func (m *Metadata) Validate(validator structure.Validator) {
 // recordSummariesUpdate updates the pending/deleted summaries and return true if any changes were made
 // as part of this update cycle
 func (m *Metadata) recordSummariesUpdate(update SummariesUpdate) bool {
-	changed := false
-	for _, summaryType := range update.UpdatedTypes {
-		if !slices.Contains(m.PendingSummaryUpdates, summaryType) {
-			m.PendingSummaryUpdates = append(m.PendingSummaryUpdates, summaryType)
-			changed = true
-		}
-	}
-	for _, summaryID := range update.Deleted {
-		if !slices.Contains(m.PendingSummaryDeletes, summaryID) {
-			m.PendingSummaryDeletes = append(m.PendingSummaryDeletes, summaryID)
-			changed = true
-		}
-	}
-	if changed {
-		slices.Sort(m.PendingSummaryUpdates)
-		slices.Sort(m.PendingSummaryDeletes)
-	}
-	return changed
+	return dataWorkSummary.RecordSummariesUpdate(&m.PendingSummaryUpdates,
+		&m.PendingSummaryDeletes, update)
 }

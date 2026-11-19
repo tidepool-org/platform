@@ -2,17 +2,15 @@ package postprocess
 
 import (
 	"context"
-	"slices"
 	"time"
 
-	"github.com/tidepool-org/platform/clinics"
+	dataWorkSummary "github.com/tidepool-org/platform/data/work/summary"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
-	summaryTypes "github.com/tidepool-org/platform/summary/types"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
 )
@@ -154,11 +152,7 @@ func (p *Processor) absorbPending() *work.ProcessResult {
 
 func (p *Processor) updateSummaries() *work.ProcessResult {
 	var err error
-	updateSummaries := p.UpdateSummaries
-	if RecalculatesSummaries(p.Metadata().Reasons) {
-		updateSummaries = p.RecalculateSummaries
-	}
-	p.summariesUpdate, err = updateSummaries(p.Context(), *p.Metadata().UserID)
+	p.summariesUpdate, err = p.UpdateSummaries(p.Context(), *p.Metadata().UserID)
 
 	// The changes made are recorded in the metadata before they are synced to the clinic service,
 	// so that a failure between the two retries the update. They are recorded even when the
@@ -184,34 +178,18 @@ func (p *Processor) updateSummaries() *work.ProcessResult {
 
 func (p *Processor) updateClinicSummaries() *work.ProcessResult {
 	workMetadata := p.Metadata()
-	if len(workMetadata.PendingSummaryUpdates) == 0 && len(workMetadata.PendingSummaryDeletes) == 0 {
-		return nil
+	synced, err := dataWorkSummary.SyncClinicSummaries(p.Context(), p.ClinicsClient,
+		*workMetadata.UserID, workMetadata.PendingSummaryUpdates,
+		workMetadata.PendingSummaryDeletes, p.summariesUpdate)
+	if err != nil {
+		return p.Failing(err)
 	}
-
-	for _, summaryID := range workMetadata.PendingSummaryDeletes {
-		if err := p.ClinicsClient.DeletePatientSummary(p.Context(), summaryID); err != nil {
-			return p.Failing(errors.Wrap(err, "unable to delete patient summary"))
-		}
+	if synced {
+		log.LoggerFromContext(p.Context()).WithFields(log.Fields{
+			"updated": workMetadata.PendingSummaryUpdates,
+			"deleted": workMetadata.PendingSummaryDeletes,
+		}).Debug("synced user summaries with the clinic service")
 	}
-
-	var cgm *summaryTypes.CGMSummary
-	var bgm *summaryTypes.BGMSummary
-	if slices.Contains(workMetadata.PendingSummaryUpdates, summaryTypes.SummaryTypeCGM) {
-		cgm = p.summariesUpdate.CGM
-	}
-	if slices.Contains(workMetadata.PendingSummaryUpdates, summaryTypes.SummaryTypeBGM) {
-		bgm = p.summariesUpdate.BGM
-	}
-	if cgm != nil || bgm != nil {
-		if err := p.ClinicsClient.UpdatePatientSummary(p.Context(), *p.Metadata().UserID, clinics.NewPatientSummary(cgm, bgm)); err != nil {
-			return p.Failing(errors.Wrap(err, "unable to update patient summary"))
-		}
-	}
-
-	log.LoggerFromContext(p.Context()).WithFields(log.Fields{
-		"updated": workMetadata.PendingSummaryUpdates,
-		"deleted": workMetadata.PendingSummaryDeletes,
-	}).Debug("synced user summaries with the clinic service")
 
 	return nil
 }

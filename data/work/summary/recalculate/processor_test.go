@@ -10,9 +10,9 @@ import (
 
 	"go.uber.org/mock/gomock"
 
-	dataWorkPostprocess "github.com/tidepool-org/platform/data/work/postprocess"
 	dataWorkSummaryRecalculate "github.com/tidepool-org/platform/data/work/summary/recalculate"
 	dataWorkSummaryRecalculateTest "github.com/tidepool-org/platform/data/work/summary/recalculate/test"
+	dataWorkSummaryRecalculateUser "github.com/tidepool-org/platform/data/work/summary/recalculate/user"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
@@ -51,11 +51,12 @@ var _ = Describe("Processor", func() {
 		}
 	}
 
-	// Lists the given number of pending postprocess work items
+	// Lists the given number of pending user recalculations
 	expectListPending := func(count int) {
 		workClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
 			func(_ context.Context, filter *work.Filter, pagination *page.Pagination) ([]*work.Work, error) {
-				Expect(filter.Types).To(PointTo(ConsistOf(dataWorkPostprocess.Type)))
+				Expect(filter.Types).
+					To(PointTo(ConsistOf(dataWorkSummaryRecalculateUser.Type)))
 				Expect(filter.State).To(PointTo(Equal(work.StatePending)))
 				Expect(filter.GroupID).To(BeNil())
 				Expect(pagination.Size).To(Equal(dataWorkSummaryRecalculate.PendingMaximum))
@@ -63,7 +64,7 @@ var _ = Describe("Processor", func() {
 			})
 	}
 
-	// Captures the postprocess work created
+	// Captures the user recalculations created
 	expectCreate := func(count int) *[]*work.Create {
 		var created []*work.Create
 		workClient.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(
@@ -126,11 +127,11 @@ var _ = Describe("Processor", func() {
 
 		Expect(*created).To(HaveLen(len(userIDs)))
 		for index, create := range *created {
-			Expect(create.Type).To(Equal(dataWorkPostprocess.Type))
-			Expect(create.ProcessingPriority).To(Equal(dataWorkPostprocess.ProcessingPriorityLow))
+			Expect(create.Type).To(Equal(dataWorkSummaryRecalculateUser.Type))
+			Expect(create.DeduplicationID).To(PointTo(Equal(
+				dataWorkSummaryRecalculateUser.DeduplicationID(
+					dataWorkSummaryRecalculate.ID, userIDs[index]))))
 			Expect(create.Metadata).To(HaveKeyWithValue("userId", userIDs[index]))
-			Expect(create.Metadata).To(HaveKeyWithValue("reasons",
-				ConsistOf(dataWorkPostprocess.ReasonSummaryRecalculation)))
 		}
 	})
 
@@ -162,7 +163,7 @@ var _ = Describe("Processor", func() {
 		Expect(process().Result).To(Equal(work.ResultSuccess))
 	})
 
-	It("defers without requesting recalculations while postprocess work is backed up", func() {
+	It("defers without requesting recalculations while those requested are pending", func() {
 		lastUserID := userTest.RandomUserID()
 		wrk = newWork(pointer.From(lastUserID))
 		expectListPending(dataWorkSummaryRecalculate.PendingMaximum)
@@ -172,7 +173,7 @@ var _ = Describe("Processor", func() {
 		Expect(decodeLastUserID(result)).To(PointTo(Equal(lastUserID)))
 	})
 
-	It("is failing if pending postprocess work can't be listed", func() {
+	It("is failing if the pending user recalculations can't be listed", func() {
 		workClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(nil, errorsTest.RandomError())
 
@@ -188,7 +189,7 @@ var _ = Describe("Processor", func() {
 		Expect(process().Result).To(Equal(work.ResultFailing))
 	})
 
-	// The retry requests the whole batch again, which postprocess coalesces
+	// The retry requests the whole batch again, deduplicated against what is pending
 	It("is failing without advancing if a recalculation can't be requested", func() {
 		lastUserID := userTest.RandomUserID()
 		wrk = newWork(pointer.From(lastUserID))

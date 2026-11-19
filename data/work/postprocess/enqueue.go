@@ -45,19 +45,17 @@ func Enqueue(ctx context.Context, workClient work.Client, userID string, reasons
 }
 
 func newCreate(userID string, reasons []string) (*work.Create, error) {
-	reasons = normalizeReasons(reasons)
 	create, err := metadata.WithMetadata(
 		&work.Create{
 			Type:                    Type,
 			GroupID:                 pointer.FromString(IDFromUserID(userID)),
 			SerialID:                pointer.FromString(IDFromUserID(userID)),
 			ProcessingAvailableTime: time.Now(),
-			ProcessingPriority:      processingPriority(reasons),
 			ProcessingTimeout:       int(ProcessingTimeout.Seconds()),
 		},
 		&Metadata{
 			Metadata: userWork.Metadata{UserID: pointer.FromString(userID)},
-			Reasons:  reasons,
+			Reasons:  normalizeReasons(reasons),
 		},
 	)
 	if err != nil {

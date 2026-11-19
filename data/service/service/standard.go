@@ -34,6 +34,7 @@ import (
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	dataWorkPostprocess "github.com/tidepool-org/platform/data/work/postprocess"
 	dataWorkSummaryRecalculate "github.com/tidepool-org/platform/data/work/summary/recalculate"
+	dataWorkSummaryRecalculateUser "github.com/tidepool-org/platform/data/work/summary/recalculate/user"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	"github.com/tidepool-org/platform/log"
@@ -828,6 +829,23 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 		ClinicsClient: s.clinicsClient,
 	}); err != nil {
 		return errors.Wrap(err, "unable to create data upload postprocess work processor factory")
+	} else {
+		processorFactories = append(processorFactories, processorFactory)
+	}
+
+	s.Logger().Debug("Creating data summary recalculate user work processor factory")
+
+	recalculateSummarizers, err := dataWorkSummaryRecalculateUser.NewSummarizers(s.summarizerRegistry)
+	if err != nil {
+		return errors.Wrap(err, "unable to create recalculate summarizers")
+	}
+
+	if processorFactory, err := dataWorkSummaryRecalculateUser.NewProcessorFactory(dataWorkSummaryRecalculateUser.Dependencies{
+		Dependencies:  dependencies,
+		Summarizers:   recalculateSummarizers,
+		ClinicsClient: s.clinicsClient,
+	}); err != nil {
+		return errors.Wrap(err, "unable to create data summary recalculate user work processor factory")
 	} else {
 		processorFactories = append(processorFactories, processorFactory)
 	}
