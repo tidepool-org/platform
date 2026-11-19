@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 
-	dataWorkPostprocess "github.com/tidepool-org/platform/data/work/postprocess"
 	dataWorkSummaryRecalculateUser "github.com/tidepool-org/platform/data/work/summary/recalculate/user"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
@@ -55,20 +54,17 @@ var _ = Describe("work", func() {
 			Expect(workCreate).To(BeNil())
 		})
 
-		// The serial id is that of the postprocess work of the user, so that the two are
-		// never processed at once
-		It("returns work for the user, serialized with their postprocess work", func() {
+		It("returns work deduplicated by the recalculation and the user", func() {
 			workCreate, err := dataWorkSummaryRecalculateUser.NewWorkCreate(recalculationID,
 				userID)
 			Expect(err).ToNot(HaveOccurred())
 			deduplicationID :=
 				dataWorkSummaryRecalculateUser.DeduplicationID(recalculationID, userID)
-			serialID := dataWorkPostprocess.IDFromUserID(userID)
 			Expect(workCreate).To(PointTo(MatchAllFields(Fields{
 				"Type":                    Equal(dataWorkSummaryRecalculateUser.Type),
 				"GroupID":                 BeNil(),
 				"DeduplicationID":         PointTo(Equal(deduplicationID)),
-				"SerialID":                PointTo(Equal(serialID)),
+				"SerialID":                BeNil(),
 				"ProcessingAvailableTime": BeTemporally("~", time.Now(), time.Second),
 				"ProcessingPriority":      Equal(0),
 				"ProcessingTimeout":       Equal(300),

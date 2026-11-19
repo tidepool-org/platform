@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	dataWorkPostprocess "github.com/tidepool-org/platform/data/work/postprocess"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/pointer"
@@ -63,8 +62,11 @@ func DeduplicationID(recalculationID string, userID string) string {
 // NewWorkCreate returns the work to recalculate the summaries of the user, for the
 // recalculation with the given id.
 //
-// The work has the serial id of the postprocess work of the user, so that the summaries of
-// a user aren't recalculated while they're being updated for a change to the user's data.
+// The work isn't serialized with the postprocess work of the user. A serial id only keeps
+// apart work that is polled for together, and work of one type isn't polled for while every
+// processor of that type is busy, so sharing the serial id of the postprocess work wouldn't
+// reliably keep the two apart. Instead, each summary is calculated within a transaction,
+// which keeps a recalculation and an update of the same summary from interleaving.
 func NewWorkCreate(recalculationID string, userID string) (*work.Create, error) {
 	if recalculationID == "" {
 		return nil, errors.New("recalculation id is missing")
@@ -77,7 +79,6 @@ func NewWorkCreate(recalculationID string, userID string) (*work.Create, error) 
 		&work.Create{
 			Type:                    Type,
 			DeduplicationID:         pointer.From(DeduplicationID(recalculationID, userID)),
-			SerialID:                pointer.From(dataWorkPostprocess.IDFromUserID(userID)),
 			ProcessingAvailableTime: time.Now(),
 			ProcessingTimeout:       int(ProcessingTimeout.Seconds()),
 		},

@@ -3,7 +3,6 @@ package user
 import (
 	"context"
 
-	dataWorkPostprocess "github.com/tidepool-org/platform/data/work/postprocess"
 	dataWorkSummary "github.com/tidepool-org/platform/data/work/summary"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -55,22 +54,16 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work,
 	processingUpdater work.ProcessingUpdater) *work.ProcessResult {
 
 	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
-		func() *work.ProcessResult { return p.validateWork(wrk) },
+		p.validateWork,
 		p.recalculateSummaries,
 		p.syncClinicSummaries,
 	).Process(p.Delete)
 }
 
-// validateWork fails if the work isn't serialized with the postprocess work of its user.
-func (p *Processor) validateWork(wrk *work.Work) *work.ProcessResult {
-	userID := p.Metadata().UserID
-	if userID == nil {
+// validateWork fails if the work doesn't identify its user.
+func (p *Processor) validateWork() *work.ProcessResult {
+	if p.Metadata().UserID == nil {
 		return p.Failed(errors.New("work is invalid; metadata user id is missing"))
-	}
-	serialID := dataWorkPostprocess.IDFromUserID(*userID)
-	if wrk.SerialID == nil || *wrk.SerialID != serialID {
-		return p.Failed(
-			errors.New("work is invalid; serial id does not match metadata user id"))
 	}
 	return nil
 }

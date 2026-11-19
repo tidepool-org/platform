@@ -11,7 +11,6 @@ import (
 	"go.uber.org/mock/gomock"
 
 	clinicsTest "github.com/tidepool-org/platform/clinics/test"
-	dataWorkPostprocess "github.com/tidepool-org/platform/data/work/postprocess"
 	dataWorkSummary "github.com/tidepool-org/platform/data/work/summary"
 	dataWorkSummaryRecalculateUser "github.com/tidepool-org/platform/data/work/summary/recalculate/user"
 	dataWorkSummaryRecalculateUserTest "github.com/tidepool-org/platform/data/work/summary/recalculate/user/test"
@@ -46,7 +45,6 @@ var _ = Describe("Processor", func() {
 		return &work.Work{
 			ID:                      workTest.RandomID(),
 			Type:                    dataWorkSummaryRecalculateUser.Type,
-			SerialID:                pointer.From(dataWorkPostprocess.IDFromUserID(userID)),
 			ProcessingAvailableTime: time.Now().Add(-time.Minute),
 			ProcessingTimeout:       300,
 			Metadata:                encoded,
@@ -231,13 +229,6 @@ var _ = Describe("Processor", func() {
 
 	It("fails if the user id is missing", func() {
 		wrk = newWork(&dataWorkSummaryRecalculateUser.Metadata{})
-
-		Expect(process().Result).To(Equal(work.ResultFailed))
-	})
-
-	It("fails if the work isn't serialized with the postprocess work of the user", func() {
-		otherUserID := userTest.RandomUserID()
-		wrk.SerialID = pointer.From(dataWorkPostprocess.IDFromUserID(otherUserID))
 
 		Expect(process().Result).To(Equal(work.ResultFailed))
 	})

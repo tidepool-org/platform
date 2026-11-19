@@ -45,9 +45,8 @@ func (m *Metadata) Validate(validator structure.Validator) {
 }
 
 // Processor requests the recalculation of the summaries of every user with a summary, a
-// batch of users at a time, by creating work for each user. The work of a user is
-// serialized with the postprocess work of the user, and syncs the recalculated summaries
-// to the clinic service.
+// batch of users at a time, by creating work for each user. The work of a user
+// recalculates their summaries and syncs them to the clinic service.
 type Processor struct {
 	*workBase.Processor[Metadata]
 	SummaryLister
