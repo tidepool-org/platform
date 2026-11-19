@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -76,6 +77,49 @@ func (r *TypelessSummaries) DeleteSummary(ctx context.Context, userID string) er
 	}
 
 	return nil
+}
+
+// ListUserIDs returns, in ascending order, the ids of up to limit users with a summary of
+// any type, starting after the given user id, if any, so that every user can be paged
+// through.
+func (r *TypelessSummaries) ListUserIDs(ctx context.Context, afterUserID *string, limit int) ([]string, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if limit <= 0 {
+		return nil, errors.New("limit is invalid")
+	}
+
+	selector := bson.M{}
+	if afterUserID != nil {
+		selector["userId"] = bson.M{"$gt": *afterUserID}
+	}
+
+	// A user can have one summary of each type, so finding limit users can take that many
+	// summaries per user. The duplicate user ids are removed below.
+	opts := options.Find().
+		SetSort(bson.D{{Key: "userId", Value: 1}}).
+		SetProjection(bson.M{"_id": 0, "userId": 1}).
+		SetLimit(int64(limit) * int64(len(types.AllSummaryTypes)))
+	cursor, err := r.Find(ctx, selector, opts)
+	if err != nil {
+		return nil, fmt.Errorf("unable to list summary user ids: %w", err)
+	}
+
+	var summaries []struct {
+		UserID string `bson:"userId"`
+	}
+	if err = cursor.All(ctx, &summaries); err != nil {
+		return nil, fmt.Errorf("unable to decode summary user ids: %w", err)
+	}
+
+	userIDs := make([]string, 0, len(summaries))
+	for _, summary := range summaries {
+		userIDs = append(userIDs, summary.UserID)
+	}
+	userIDs = slices.Compact(userIDs)
+
+	return userIDs[:min(limit, len(userIDs))], nil
 }
 
 func (r *Summaries[PP, PB, P, B]) DeleteSummary(ctx context.Context, userID string) error {

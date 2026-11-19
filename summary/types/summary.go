@@ -17,14 +17,44 @@ const (
 	SummaryTypeCGM        = "cgm"
 	SummaryTypeBGM        = "bgm"
 	SummaryTypeContinuous = "con"
-	SchemaVersion         = 6
 
-	lowBloodGlucose         = 3.9
-	veryLowBloodGlucose     = 3.0
-	highBloodGlucose        = 10.0
-	veryHighBloodGlucose    = 13.9
+	// SchemaVersion identifies the rules by which a summary was calculated, including how
+	// readings are classified into glucose ranges. It's stored in the config of each
+	// summary. A summary whose schema version doesn't match is recalculated from all of the
+	// user's data, rather than incrementally, the next time it's updated.
+	//
+	// That only happens when the user's data changes. If incrementing it requires every
+	// summary to be migrated promptly, then also change the recalculation id in the
+	// data/work/summary/recalculate package. That recalculates only the CGM and BGM
+	// summaries.
+	//
+	// Version 7 adopted the gap-based cut points below (BACK-4158).
+	SchemaVersion = 7
+
+	// These values are defined in BACK-4158. They represent the ADA standard glucose
+	// ranges. If they, or how readings are classified against them, are modified, then
+	// increment SchemaVersion, so that summaries calculated before and after the change can
+	// be told apart and an update never adds to buckets classified by the previous rules.
+	// Also change the recalculation id in the data/work/summary/recalculate package, so
+	// that every patient's summary is recalculated based on the modified thresholds.
+	//
+	// Readings are compared after normalization to mmol/L, so each cut point sits in the
+	// gap between the nearest whole mg/dL and one-decimal mmol/L values, classifying both
+	// as the ADA standard intends. Readings with finer precision may not classify as
+	// expected. extremeHighBloodGlucose already falls in such a gap (349 mg/dL ≈ 19.37,
+	// 350 mg/dL ≈ 19.43), so it needs no adjustment.
+	//
+	// Each cut point is the mean of two midpoints, rounded to two decimal places: the
+	// midpoint of the neighboring whole mg/dL values, converted to mmol/L, and the midpoint
+	// of the neighboring one-decimal mmol/L values. For example, the very low cut point is
+	// the mean of 53.5 mg/dL (≈ 2.96965 mmol/L) and 2.95 mmol/L. This favors neither unit.
+	veryLowBloodGlucose     = 2.96
+	lowBloodGlucose         = 3.85
+	highBloodGlucose        = 10.03
+	veryHighBloodGlucose    = 13.93
 	extremeHighBloodGlucose = 19.4
-	HoursAgoToKeep          = 60 * 24
+
+	HoursAgoToKeep = 60 * 24
 )
 
 var DeviceDataTypesSet = mapset.NewSet[string](continuous.Type, selfmonitored.Type)

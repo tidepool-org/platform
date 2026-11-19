@@ -33,6 +33,8 @@ import (
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	dataWorkPostprocess "github.com/tidepool-org/platform/data/work/postprocess"
+	dataWorkSummaryRecalculate "github.com/tidepool-org/platform/data/work/summary/recalculate"
+	dataWorkSummaryRecalculateUser "github.com/tidepool-org/platform/data/work/summary/recalculate/user"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	"github.com/tidepool-org/platform/log"
@@ -61,6 +63,7 @@ import (
 	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/summary"
+	summaryStore "github.com/tidepool-org/platform/summary/store"
 	synctaskStoreMongo "github.com/tidepool-org/platform/synctask/store/mongo"
 	"github.com/tidepool-org/platform/twiist"
 	"github.com/tidepool-org/platform/user"
@@ -830,6 +833,34 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 		processorFactories = append(processorFactories, processorFactory)
 	}
 
+	s.Logger().Debug("Creating data summary recalculate user work processor factory")
+
+	recalculateSummarizers, err := dataWorkSummaryRecalculateUser.NewSummarizers(s.summarizerRegistry)
+	if err != nil {
+		return errors.Wrap(err, "unable to create recalculate summarizers")
+	}
+
+	if processorFactory, err := dataWorkSummaryRecalculateUser.NewProcessorFactory(dataWorkSummaryRecalculateUser.Dependencies{
+		Dependencies:  dependencies,
+		Summarizers:   recalculateSummarizers,
+		ClinicsClient: s.clinicsClient,
+	}); err != nil {
+		return errors.Wrap(err, "unable to create data summary recalculate user work processor factory")
+	} else {
+		processorFactories = append(processorFactories, processorFactory)
+	}
+
+	s.Logger().Debug("Creating data summary recalculate work processor factory")
+
+	if processorFactory, err := dataWorkSummaryRecalculate.NewProcessorFactory(dataWorkSummaryRecalculate.Dependencies{
+		Dependencies:  dependencies,
+		SummaryLister: summaryStore.NewTypeless(s.dataStore.NewSummaryRepository().GetStore()),
+	}); err != nil {
+		return errors.Wrap(err, "unable to create data summary recalculate work processor factory")
+	} else {
+		processorFactories = append(processorFactories, processorFactory)
+	}
+
 	if s.abbottClient != nil {
 		s.Logger().Debug("Creating abbott processor factories")
 
@@ -955,6 +986,14 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 func (s *Standard) initializeWorkSingletons() error {
 	ctx, cancel := context.WithTimeout(log.NewContextWithLogger(context.Background(), s.Logger()), 10*time.Second)
 	defer cancel()
+
+	s.Logger().Debug("Creating data summary recalculate work")
+
+	// The work is discarded as a duplicate once the recalculation with the id has been created
+	workCreate := dataWorkSummaryRecalculate.NewWorkCreate()
+	if _, err := s.workClient.Create(ctx, workCreate); err != nil {
+		return errors.Wrap(err, "unable to create data summary recalculate work")
+	}
 
 	if s.ouraClient != nil {
 		s.Logger().Debug("Creating oura webhook subscribe work")
