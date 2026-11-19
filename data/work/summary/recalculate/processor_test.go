@@ -111,6 +111,20 @@ var _ = Describe("Processor", func() {
 		Expect(processor).To(BeNil())
 	})
 
+	// A recalculation with another id was superseded when the id was changed. The current
+	// recalculation covers every user, so the earlier one requests nothing more.
+	It("deletes work that isn't for the current recalculation", func() {
+		wrk.DeduplicationID = pointer.From("superseded")
+
+		Expect(process().Result).To(Equal(work.ResultDelete))
+	})
+
+	It("deletes work without a deduplication id", func() {
+		wrk.DeduplicationID = nil
+
+		Expect(process().Result).To(Equal(work.ResultDelete))
+	})
+
 	It("requests the recalculation of the first batch of users", func() {
 		userIDs := []string{userTest.RandomUserID(), userTest.RandomUserID()}
 		expectListPending(0)

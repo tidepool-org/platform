@@ -81,9 +81,27 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 
 func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
 	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
+		func() *work.ProcessResult { return p.supersede(wrk) },
 		p.awaitPending,
 		p.requestRecalculations,
 	).Process(p.Pending)
+}
+
+// supersede deletes the work if it isn't for the current recalculation, which is the one
+// identified by [ID].
+//
+// When the id is changed before an earlier recalculation has requested every user, the
+// work of the earlier recalculation remains. The current recalculation starts again from
+// the first user, so the earlier one has nothing left to contribute, and would only
+// request users a second time. It's deleted rather than kept as a success, so that it runs
+// again in full if a rollback makes its id current.
+func (p *Processor) supersede(wrk *work.Work) *work.ProcessResult {
+	if wrk.DeduplicationID != nil && *wrk.DeduplicationID == ID {
+		return nil
+	}
+	log.LoggerFromContext(p.Context()).WithField("currentId", ID).
+		Info("summary recalculation is superseded, deleting it")
+	return p.Delete()
 }
 
 // awaitPending defers the work while the user recalculations already requested are backed

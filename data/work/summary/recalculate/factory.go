@@ -26,8 +26,9 @@ const (
 // recalculation runs exactly once.
 //
 // Change it to a new, never before used, value whenever every summary must be recalculated,
-// such as when the glucose ranges are modified. To run the recalculation with the current
-// id again, delete its work.
+// such as when the glucose ranges are modified. Work for any other id that hasn't finished
+// is superseded, and is deleted when it's next processed. To run the recalculation with
+// the current id again, delete its work.
 const ID = "BACK-4158-gap-based-cut-points"
 
 type SummaryLister interface {
