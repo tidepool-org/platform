@@ -764,6 +764,15 @@ var _ = Describe("Glucose", func() {
 				Entry("14.0 mmol/L is very high", glucose.MmolL, 14.0, veryHigh),
 				Entry("19.3 mmol/L is very high", glucose.MmolL, 19.3, veryHigh),
 				Entry("19.4 mmol/L is extreme high", glucose.MmolL, 19.4, extremeHigh),
+				// A reading equal to a cut point falls into the higher range.
+				Entry("2.96 mmol/L is low", glucose.MmolL, 2.96, low),
+				Entry("3.85 mmol/L is in range", glucose.MmolL, 3.85, inRange),
+				Entry("10.03 mmol/L is high", glucose.MmolL, 10.03, high),
+				Entry("13.93 mmol/L is very high", glucose.MmolL, 13.93, veryHigh),
+				Entry("2.95 mmol/L is very low", glucose.MmolL, 2.95, veryLow),
+				Entry("3.84 mmol/L is low", glucose.MmolL, 3.84, low),
+				Entry("10.02 mmol/L is in range", glucose.MmolL, 10.02, inRange),
+				Entry("13.92 mmol/L is high", glucose.MmolL, 13.92, high),
 			)
 
 			It("classifies every supported input by its native-unit standard", func() {

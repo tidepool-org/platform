@@ -35,10 +35,15 @@ const (
 	// as the ADA standard intends. Readings with finer precision may not classify as
 	// expected. extremeHighBloodGlucose already falls in such a gap (349 mg/dL ≈ 19.37,
 	// 350 mg/dL ≈ 19.43), so it needs no adjustment.
-	veryLowBloodGlucose     = 2.97
-	lowBloodGlucose         = 3.87
-	highBloodGlucose        = 10.02
-	veryHighBloodGlucose    = 13.91
+	//
+	// Each cut point is the mean of two midpoints, rounded to two decimal places: the
+	// midpoint of the neighboring whole mg/dL values, converted to mmol/L, and the midpoint
+	// of the neighboring one-decimal mmol/L values. For example, the very low cut point is
+	// the mean of 53.5 mg/dL (≈ 2.96965 mmol/L) and 2.95 mmol/L. This favors neither unit.
+	veryLowBloodGlucose     = 2.96
+	lowBloodGlucose         = 3.85
+	highBloodGlucose        = 10.03
+	veryHighBloodGlucose    = 13.93
 	extremeHighBloodGlucose = 19.4
 
 	HoursAgoToKeep = 60 * 24
