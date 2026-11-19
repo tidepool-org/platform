@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
+	"slices"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -95,37 +95,31 @@ func (r *TypelessSummaries) ListUserIDs(ctx context.Context, afterUserID *string
 		selector["userId"] = bson.M{"$gt": *afterUserID}
 	}
 
-	// A user has a summary of each type, so their ids are deduplicated as they're read. The
-	// cursor is read only until enough users are found, rather than limiting the query to a
-	// number of summaries that depends on how many types there are. The batch size is
-	// clamped only to guard the conversion to int32 against overflow.
+	// A user can have one summary of each type, so finding limit users can take that many
+	// summaries per user. The duplicate user ids are removed below.
 	opts := options.Find().
 		SetSort(bson.D{{Key: "userId", Value: 1}}).
 		SetProjection(bson.M{"_id": 0, "userId": 1}).
-		SetBatchSize(int32(min(limit*3, math.MaxInt32)))
+		SetLimit(int64(limit) * int64(len(types.AllSummaryTypes)))
 	cursor, err := r.Find(ctx, selector, opts)
 	if err != nil {
 		return nil, fmt.Errorf("unable to list summary user ids: %w", err)
 	}
-	defer cursor.Close(ctx)
 
-	userIDs := []string{}
-	for len(userIDs) < limit && cursor.Next(ctx) {
-		var summary struct {
-			UserID string `bson:"userId"`
-		}
-		if err = cursor.Decode(&summary); err != nil {
-			return nil, fmt.Errorf("unable to decode summary user id: %w", err)
-		}
-		if len(userIDs) == 0 || userIDs[len(userIDs)-1] != summary.UserID {
-			userIDs = append(userIDs, summary.UserID)
-		}
+	var summaries []struct {
+		UserID string `bson:"userId"`
 	}
-	if err = cursor.Err(); err != nil {
-		return nil, fmt.Errorf("unable to list summary user ids: %w", err)
+	if err = cursor.All(ctx, &summaries); err != nil {
+		return nil, fmt.Errorf("unable to decode summary user ids: %w", err)
 	}
 
-	return userIDs, nil
+	userIDs := make([]string, 0, len(summaries))
+	for _, summary := range summaries {
+		userIDs = append(userIDs, summary.UserID)
+	}
+	userIDs = slices.Compact(userIDs)
+
+	return userIDs[:min(limit, len(userIDs))], nil
 }
 
 func (r *Summaries[PP, PB, P, B]) DeleteSummary(ctx context.Context, userID string) error {
