@@ -119,151 +119,201 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) GetBucketsRange(ctx context.Context, 
 	return gs.buckets.GetBucketsRange(ctx, userID, &startTime, &endTime)
 }
 
-func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, userID string) (*types.Summary[PP, PB, P, B], error) {
-	return gs.updateOrRecalculateSummary(ctx, userID, false)
-}
+func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context,
+	userID string) (*types.Summary[PP, PB, P, B], error) {
 
-func (gs *GlucoseSummarizer[PP, PB, P, B]) RecalculateSummary(ctx context.Context, userID string) (*types.Summary[PP, PB, P, B], error) {
-	return gs.updateOrRecalculateSummary(ctx, userID, true)
-}
+	return gs.withTransaction(ctx, func(sessionCtx mongo.SessionContext) (
+		*types.Summary[PP, PB, P, B], error) {
 
-// updateOrRecalculateSummary updates the summary of the user incrementally, unless
-// recalculate is true or the summary's schema version is outdated, in which case it's
-// recalculated from all of the user's data.
-func (gs *GlucoseSummarizer[PP, PB, P, B]) updateOrRecalculateSummary(ctx context.Context, userID string, recalculate bool) (*types.Summary[PP, PB, P, B], error) {
-	logger := log.LoggerFromContext(ctx)
-	result, err := storeStructuredMongo.WithTransaction(ctx, gs.mongoClient, func(sessionCtx mongo.SessionContext) (interface{}, error) {
-		now := time.Now()
+		start := time.Now()
 		userSummary, err := gs.GetSummary(sessionCtx, userID)
-		summaryType := types.GetType[PP, PB]()
-		dataTypes := types.GetDeviceDataType[PP, PB]()
 		if err != nil {
 			return nil, err
 		}
 
-		logger.Debugf("Starting %s summary calculation for %s", types.GetType[PP, PB](), userID)
-
-		// user has no usable summary for incremental update
-		if userSummary == nil {
-			userSummary = types.Create[PP, PB](userID)
-
-			// This should be/will be a No-Op, but in case the summary was deleted without deleting buckets
-			err = gs.buckets.Reset(sessionCtx, userID)
+		schemaMigration := userSummary != nil &&
+			userSummary.Config.SchemaVersion != types.SchemaVersion
+		if userSummary == nil || schemaMigration {
+			// Resetting the buckets of a user without a summary should be a no-op, but
+			// covers a summary that was deleted without deleting its buckets.
+			userSummary, err = gs.resetSummary(sessionCtx, userID)
 			if err != nil {
 				return nil, err
 			}
-		}
-
-		if userSummary.Periods == nil {
+		} else if userSummary.Periods == nil {
 			userSummary.Periods = new(P)
 			userSummary.Periods.Init()
 		}
 
-		schemaMigration := userSummary.Config.SchemaVersion != types.SchemaVersion
-		if recalculate || schemaMigration {
-			// A summary calculated with an outdated schema, or whose recalculation was
-			// requested, is recreated from nothing
-			*userSummary = *types.Create[PP, PB](userID)
-
-			// Drop all buckets for this user for a full reset
-			err = gs.buckets.Reset(sessionCtx, userID)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		var status *data.UserDataStatus
-		status, err = gs.dataFetcher.GetLastUpdatedForUser(sessionCtx, userID, dataTypes, userSummary.Dates.LastUpdatedDate)
+		userSummary, calculated, err := gs.calculateSummary(sessionCtx, userSummary)
 		if err != nil {
 			return nil, err
 		}
-
-		// this filters out users which cannot be updated, as they have no data of type T, but were called for update
-		if status == nil {
-			// user's data is inactive/ancient/deleted, or this summary shouldn't have been created
-			logger.Warnf("User %s has a summary, but no data within range, deleting summary", userID)
-			return nil, gs.summaries.DeleteSummary(sessionCtx, userID)
+		if calculated {
+			logCalculated(sessionCtx, "UpdateSummary", start, log.Fields{
+				"summaryType":     types.GetType[PP, PB](),
+				"schemaMigration": schemaMigration,
+			})
 		}
-
-		// this filters out users which cannot be updated, as they somehow got called for update, but have no new data
-		if status.EarliestModified.IsZero() {
-			logger.Warnf("User %s was called for a %s summary update, but has no new data, skipping", userID, summaryType)
-
-			return userSummary, nil
-		}
-
-		// only attempt to invalidate buckets if there is buckets which exist in the modified range
-		if status.EarliestModified.Compare(userSummary.Dates.LastData) <= 0 {
-			if newFirstData, clearErr := gs.buckets.ClearInvalidatedBuckets(sessionCtx, userID, status.EarliestModified); clearErr != nil {
-				return nil, clearErr
-			} else if !newFirstData.IsZero() {
-				status.FirstData = newFirstData
-			}
-		} else if userSummary.Dates.LastData.After(status.FirstData) {
-			// otherwise limit FirstData to previous LastData
-			status.FirstData = userSummary.Dates.LastData
-		}
-
-		cursor, err := gs.dataFetcher.GetDataRange(sessionCtx, userID, dataTypes, status)
-		if err != nil {
-			return nil, err
-		}
-		defer storeStructuredMongo.CloseCursor(sessionCtx, cursor)
-
-		err = gs.UpdateBuckets(sessionCtx, userID, summaryType, gs.cursorFactory(cursor))
-		if err != nil {
-			return nil, err
-		}
-
-		err = gs.buckets.TrimExcessBuckets(sessionCtx, userID)
-		if err != nil {
-			return nil, err
-		}
-
-		allBuckets, err := gs.buckets.GetAllBuckets(sessionCtx, userID)
-		if err != nil {
-			return nil, err
-		}
-		defer storeStructuredMongo.CloseCursor(sessionCtx, allBuckets)
-
-		err = userSummary.Periods.Update(sessionCtx, allBuckets)
-		if err != nil {
-			return nil, err
-		}
-
-		// this filters out users which may have appeared to have relevant data, but was filtered during calculation
-		oldest, err := gs.buckets.GetOldestRecordTime(sessionCtx, userID)
-		if err != nil {
-			return nil, err
-		}
-
-		if oldest.IsZero() {
-			logger.Warnf("User %s has a summary, but no valid data within range, deleting summary", userID)
-			return nil, gs.summaries.DeleteSummary(sessionCtx, userID)
-		}
-
-		userSummary.Dates.Update(status, oldest)
-		if err := gs.summaries.ReplaceSummary(sessionCtx, userSummary); err != nil {
-			return nil, err
-		}
-
-		logger.WithFields(log.Fields{
-			"summaryType":     summaryType,
-			"schemaMigration": schemaMigration,
-			"recalculation":   recalculate,
-			"duration":        time.Since(now).Microseconds(),
-		}).Info("UpdateOrRecalculateSummary")
 		return userSummary, nil
 	})
+}
+
+func (gs *GlucoseSummarizer[PP, PB, P, B]) RecalculateSummary(ctx context.Context,
+	userID string) (*types.Summary[PP, PB, P, B], error) {
+
+	return gs.withTransaction(ctx, func(sessionCtx mongo.SessionContext) (
+		*types.Summary[PP, PB, P, B], error) {
+
+		start := time.Now()
+		userSummary, err := gs.resetSummary(sessionCtx, userID)
+		if err != nil {
+			return nil, err
+		}
+
+		userSummary, calculated, err := gs.calculateSummary(sessionCtx, userSummary)
+		if err != nil {
+			return nil, err
+		}
+		if calculated {
+			logCalculated(sessionCtx, "RecalculateSummary", start, log.Fields{
+				"summaryType": types.GetType[PP, PB](),
+			})
+		}
+		return userSummary, nil
+	})
+}
+
+func (gs *GlucoseSummarizer[PP, PB, P, B]) withTransaction(ctx context.Context,
+	calculate func(sessionCtx mongo.SessionContext) (*types.Summary[PP, PB, P, B], error)) (
+	*types.Summary[PP, PB, P, B], error) {
+
+	result, err := storeStructuredMongo.WithTransaction(ctx, gs.mongoClient,
+		func(sessionCtx mongo.SessionContext) (interface{}, error) {
+			return calculate(sessionCtx)
+		})
 	if err != nil {
 		return nil, err
 	}
+	userSummary, _ := result.(*types.Summary[PP, PB, P, B])
+	return userSummary, nil
+}
 
-	if result == nil {
+// resetSummary returns a new, empty summary for the user, having deleted all of the user's
+// buckets, so that the summary is calculated from all of the user's data. The summary isn't
+// stored.
+func (gs *GlucoseSummarizer[PP, PB, P, B]) resetSummary(ctx context.Context,
+	userID string) (*types.Summary[PP, PB, P, B], error) {
+
+	if err := gs.buckets.Reset(ctx, userID); err != nil {
 		return nil, err
 	}
+	return types.Create[PP, PB](userID), nil
+}
 
-	return result.(*types.Summary[PP, PB, P, B]), err
+// calculateSummary updates the buckets and periods of userSummary from the data modified
+// since it was last updated, and stores it. It returns the summary, or nil if the summary
+// was deleted because the user has no usable data. It reports whether the summary was
+// calculated and stored, which it isn't when it's deleted or the user has no new data.
+func (gs *GlucoseSummarizer[PP, PB, P, B]) calculateSummary(ctx context.Context,
+	userSummary *types.Summary[PP, PB, P, B]) (*types.Summary[PP, PB, P, B], bool, error) {
+
+	logger := log.LoggerFromContext(ctx)
+	userID := userSummary.UserID
+	summaryType := types.GetType[PP, PB]()
+	dataTypes := types.GetDeviceDataType[PP, PB]()
+
+	logger.Debugf("Starting %s summary calculation for %s", summaryType, userID)
+
+	status, err := gs.dataFetcher.GetLastUpdatedForUser(ctx, userID, dataTypes,
+		userSummary.Dates.LastUpdatedDate)
+	if err != nil {
+		return nil, false, err
+	}
+
+	// The user's data is inactive, too old, or deleted, or the summary shouldn't have been
+	// created.
+	if status == nil {
+		msg := "User %s has a summary, but no data within range, deleting summary"
+		logger.Warnf(msg, userID)
+		return nil, false, gs.summaries.DeleteSummary(ctx, userID)
+	}
+
+	if status.EarliestModified.IsZero() {
+		msg := "User %s was called for a %s summary update, but has no new data, skipping"
+		logger.Warnf(msg, userID, summaryType)
+		return userSummary, false, nil
+	}
+
+	if status.EarliestModified.Compare(userSummary.Dates.LastData) <= 0 {
+		// Buckets can only exist in the modified range when it starts at or before the
+		// summary's last data, so only then are the buckets within it invalidated.
+		newFirstData, err := gs.buckets.ClearInvalidatedBuckets(ctx, userID,
+			status.EarliestModified)
+		if err != nil {
+			return nil, false, err
+		}
+		if !newFirstData.IsZero() {
+			status.FirstData = newFirstData
+		}
+	} else if userSummary.Dates.LastData.After(status.FirstData) {
+		// Otherwise, all of the modified data is newer than the summary's last data, so
+		// reading starts after it rather than at the start of the retention window.
+		status.FirstData = userSummary.Dates.LastData
+	}
+
+	cursor, err := gs.dataFetcher.GetDataRange(ctx, userID, dataTypes, status)
+	if err != nil {
+		return nil, false, err
+	}
+	defer storeStructuredMongo.CloseCursor(ctx, cursor)
+
+	err = gs.UpdateBuckets(ctx, userID, summaryType, gs.cursorFactory(cursor))
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = gs.buckets.TrimExcessBuckets(ctx, userID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	allBuckets, err := gs.buckets.GetAllBuckets(ctx, userID)
+	if err != nil {
+		return nil, false, err
+	}
+	defer storeStructuredMongo.CloseCursor(ctx, allBuckets)
+
+	err = userSummary.Periods.Update(ctx, allBuckets)
+	if err != nil {
+		return nil, false, err
+	}
+
+	// A user without an oldest record appeared to have relevant data, but all of it was
+	// filtered out during the calculation, so the summary is deleted.
+	oldest, err := gs.buckets.GetOldestRecordTime(ctx, userID)
+	if err != nil {
+		return nil, false, err
+	}
+	if oldest.IsZero() {
+		msg := "User %s has a summary, but no valid data within range, deleting summary"
+		logger.Warnf(msg, userID)
+		return nil, false, gs.summaries.DeleteSummary(ctx, userID)
+	}
+
+	userSummary.Dates.Update(status, oldest)
+	if err := gs.summaries.ReplaceSummary(ctx, userSummary); err != nil {
+		return nil, false, err
+	}
+
+	return userSummary, true, nil
+}
+
+func logCalculated(ctx context.Context, message string, start time.Time,
+	fields log.Fields) {
+
+	log.LoggerFromContext(ctx).WithFields(fields).
+		WithField("duration", time.Since(start).Microseconds()).Info(message)
 }
 
 func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateBuckets(ctx context.Context, userID string, summaryType string, cursor fetcher.DeviceDataCursor) error {
