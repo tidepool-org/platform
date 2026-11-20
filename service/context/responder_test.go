@@ -262,7 +262,7 @@ var _ = Describe("Responder", func() {
 
 				Context("RespondWithInternalServerFailure", func() {
 					It("is successful", func() {
-						responder.RespondWithInternalServerFailure("test")
+						responder.RespondWithInternalServerFailure("test", nil)
 						Expect(request.Env["ERRORS"]).To(Equal(internalServerFailureErrors))
 						Expect(response.WriteHeaderInputs).To(ConsistOf(500))
 						Expect(response.WriteJsonInputs).To(ConsistOf(&context.JSONResponse{
@@ -276,10 +276,8 @@ var _ = Describe("Responder", func() {
 						}))
 					})
 
-					It("is successful with optional arguments", func() {
-						responder.RespondWithInternalServerFailure("test",
-							"string-optional", &Stringer{"stringer-optional"},
-							errors.New("error-optional"), []string{"string-array-optional"})
+					It("is successful with optional error", func() {
+						responder.RespondWithInternalServerFailure("test", errors.New("error-optional"))
 						Expect(request.Env["ERRORS"]).To(Equal(internalServerFailureErrors))
 						Expect(response.WriteHeaderInputs).To(ConsistOf(500))
 						Expect(response.WriteJsonInputs).To(ConsistOf(&context.JSONResponse{
@@ -288,53 +286,6 @@ var _ = Describe("Responder", func() {
 								Trace: &context.Trace{
 									Request: "request-revenant",
 									Session: "session-spectre",
-								},
-							},
-						}))
-					})
-				})
-
-				Context("RespondWithStatusAndErrors", func() {
-					It("is successful", func() {
-						responder.RespondWithStatusAndErrors(401, testErrors)
-						Expect(request.Env["ERRORS"]).To(Equal(testErrors))
-						Expect(response.WriteHeaderInputs).To(ConsistOf(401))
-						Expect(response.WriteJsonInputs).To(ConsistOf(&context.JSONResponse{
-							Errors: testErrors,
-							Meta: &context.Meta{
-								Trace: &context.Trace{
-									Request: "request-revenant",
-									Session: "session-spectre",
-								},
-							},
-						}))
-					})
-
-					It("does not add trace request if not present", func() {
-						delete(request.Env, "TRACE-REQUEST")
-						responder.RespondWithStatusAndErrors(402, testErrors)
-						Expect(request.Env["ERRORS"]).To(Equal(testErrors))
-						Expect(response.WriteHeaderInputs).To(ConsistOf(402))
-						Expect(response.WriteJsonInputs).To(ConsistOf(&context.JSONResponse{
-							Errors: testErrors,
-							Meta: &context.Meta{
-								Trace: &context.Trace{
-									Session: "session-spectre",
-								},
-							},
-						}))
-					})
-
-					It("does not add trace session if not present", func() {
-						delete(request.Env, "TRACE-SESSION")
-						responder.RespondWithStatusAndErrors(403, testErrors)
-						Expect(request.Env["ERRORS"]).To(Equal(testErrors))
-						Expect(response.WriteHeaderInputs).To(ConsistOf(403))
-						Expect(response.WriteJsonInputs).To(ConsistOf(&context.JSONResponse{
-							Errors: testErrors,
-							Meta: &context.Meta{
-								Trace: &context.Trace{
-									Request: "request-revenant",
 								},
 							},
 						}))

@@ -18,7 +18,6 @@ var _ = Describe("Errors", func() {
 			Expect(err.Title).To(Equal(title))
 			Expect(err.Detail).To(Equal(detail))
 			Expect(err.Status).To(Equal(status))
-			Expect(err.Source).To(BeNil())
 			Expect(err.Meta).To(BeNil())
 		},
 		Entry("is ErrorInternalServerFailure", service.ErrorInternalServerFailure(), "internal-server-failure", "internal server failure", "Internal server failure", 500),

@@ -19,6 +19,8 @@ type DataRangesResponse struct {
 	Calibrations  *DataRange `json:"calibrations,omitempty"`
 	EGVs          *DataRange `json:"egvs,omitempty"`
 	Events        *DataRange `json:"events,omitempty"`
+
+	Raw map[string]any `json:"-"`
 }
 
 func ParseDataRangesResponse(parser structure.ObjectParser) *DataRangesResponse {
@@ -92,6 +94,12 @@ func (d *DataRangesResponse) DataRange() *DataRange {
 		Start: startMoments[0],
 		End:   endMoments[0],
 	}
+}
+
+// Capture the raw object for potential inspection during later error conditions
+func (d *DataRangesResponse) Inspect(object map[string]any) error {
+	d.Raw = object
+	return nil
 }
 
 type DataRange struct {

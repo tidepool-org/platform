@@ -1,36 +1,20 @@
 package service
 
-type Source struct {
-	Parameter string `json:"parameter,omitempty"`
-	Pointer   string `json:"pointer,omitempty"`
-}
+import "github.com/tidepool-org/platform/errors"
 
 type Error struct {
-	Code   string      `json:"code,omitempty"`
-	Title  string      `json:"title,omitempty"`
-	Detail string      `json:"detail,omitempty"`
-	Status int         `json:"status,string,omitempty"`
-	Source *Source     `json:"source,omitempty"`
-	Meta   interface{} `json:"meta,omitempty"`
+	Code   string `json:"code,omitempty"`
+	Title  string `json:"title,omitempty"`
+	Detail string `json:"detail,omitempty"`
+	Status int    `json:"status,string,omitempty"`
+	Meta   any    `json:"meta,omitempty"`
 }
 
-func (e *Error) WithSourceParameter(parameter string) *Error {
-	if e.Source == nil {
-		e.Source = &Source{}
-	}
-	e.Source.Parameter = parameter
-	return e
-}
-
-func (e *Error) WithSourcePointer(pointer string) *Error {
-	if e.Source == nil {
-		e.Source = &Source{}
-	}
-	e.Source.Pointer = pointer
-	return e
-}
-
-func (e *Error) WithMeta(meta interface{}) *Error {
+func (e *Error) WithMeta(meta any) *Error {
 	e.Meta = meta
 	return e
+}
+
+func (e *Error) AsError() error {
+	return errors.WithMeta(errors.Prepared(e.Code, e.Title, e.Detail), e.Meta)
 }

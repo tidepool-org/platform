@@ -628,20 +628,15 @@ func (c *MockContextRespondWithErrorCall) DoAndReturn(f func(*service0.Error)) *
 }
 
 // RespondWithInternalServerFailure mocks base method.
-func (m *MockContext) RespondWithInternalServerFailure(message string, failure ...any) {
+func (m *MockContext) RespondWithInternalServerFailure(message string, err error) {
 	m.ctrl.T.Helper()
-	varargs := []any{message}
-	for _, a := range failure {
-		varargs = append(varargs, a)
-	}
-	m.ctrl.Call(m, "RespondWithInternalServerFailure", varargs...)
+	m.ctrl.Call(m, "RespondWithInternalServerFailure", message, err)
 }
 
 // RespondWithInternalServerFailure indicates an expected call of RespondWithInternalServerFailure.
-func (mr *MockContextMockRecorder) RespondWithInternalServerFailure(message any, failure ...any) *MockContextRespondWithInternalServerFailureCall {
+func (mr *MockContextMockRecorder) RespondWithInternalServerFailure(message, err any) *MockContextRespondWithInternalServerFailureCall {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{message}, failure...)
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RespondWithInternalServerFailure", reflect.TypeOf((*MockContext)(nil).RespondWithInternalServerFailure), varargs...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RespondWithInternalServerFailure", reflect.TypeOf((*MockContext)(nil).RespondWithInternalServerFailure), message, err)
 	return &MockContextRespondWithInternalServerFailureCall{Call: call}
 }
 
@@ -657,13 +652,13 @@ func (c *MockContextRespondWithInternalServerFailureCall) Return() *MockContextR
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockContextRespondWithInternalServerFailureCall) Do(f func(string, ...any)) *MockContextRespondWithInternalServerFailureCall {
+func (c *MockContextRespondWithInternalServerFailureCall) Do(f func(string, error)) *MockContextRespondWithInternalServerFailureCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockContextRespondWithInternalServerFailureCall) DoAndReturn(f func(string, ...any)) *MockContextRespondWithInternalServerFailureCall {
+func (c *MockContextRespondWithInternalServerFailureCall) DoAndReturn(f func(string, error)) *MockContextRespondWithInternalServerFailureCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -700,42 +695,6 @@ func (c *MockContextRespondWithStatusAndDataCall) Do(f func(int, any)) *MockCont
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockContextRespondWithStatusAndDataCall) DoAndReturn(f func(int, any)) *MockContextRespondWithStatusAndDataCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// RespondWithStatusAndErrors mocks base method.
-func (m *MockContext) RespondWithStatusAndErrors(statusCode int, errors []*service0.Error) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "RespondWithStatusAndErrors", statusCode, errors)
-}
-
-// RespondWithStatusAndErrors indicates an expected call of RespondWithStatusAndErrors.
-func (mr *MockContextMockRecorder) RespondWithStatusAndErrors(statusCode, errors any) *MockContextRespondWithStatusAndErrorsCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RespondWithStatusAndErrors", reflect.TypeOf((*MockContext)(nil).RespondWithStatusAndErrors), statusCode, errors)
-	return &MockContextRespondWithStatusAndErrorsCall{Call: call}
-}
-
-// MockContextRespondWithStatusAndErrorsCall wrap *gomock.Call
-type MockContextRespondWithStatusAndErrorsCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockContextRespondWithStatusAndErrorsCall) Return() *MockContextRespondWithStatusAndErrorsCall {
-	c.Call = c.Call.Return()
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockContextRespondWithStatusAndErrorsCall) Do(f func(int, []*service0.Error)) *MockContextRespondWithStatusAndErrorsCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockContextRespondWithStatusAndErrorsCall) DoAndReturn(f func(int, []*service0.Error)) *MockContextRespondWithStatusAndErrorsCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

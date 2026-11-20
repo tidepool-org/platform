@@ -66,24 +66,22 @@ func (r *Responder) Logger() log.Logger {
 
 func (r *Responder) RespondWithError(err *service.Error) {
 	if err == nil {
-		r.RespondWithInternalServerFailure("Error is missing")
+		r.RespondWithInternalServerFailure("Error is missing", nil)
 	} else if err.Status <= 0 {
-		r.RespondWithInternalServerFailure("Status field is missing from error", err)
+		r.RespondWithInternalServerFailure("Status field is missing from error", err.AsError())
 	} else {
-		r.RespondWithStatusAndErrors(err.Status, []*service.Error{err})
+		r.respondWithStatusAndError(err.Status, err)
 	}
 }
 
-func (r *Responder) RespondWithInternalServerFailure(message string, failure ...interface{}) {
-	logger := r.Logger()
-	if len(failure) > 0 {
-		logger = logger.WithField("failure", failure)
-	}
-	logger.Error(message)
+func (r *Responder) RespondWithInternalServerFailure(message string, err error) {
+	r.Logger().WithError(err).Error(message)
 	r.RespondWithError(service.ErrorInternalServerFailure())
 }
 
-func (r *Responder) RespondWithStatusAndErrors(statusCode int, errors []*service.Error) {
+func (r *Responder) respondWithStatusAndError(statusCode int, err *service.Error) {
+	errors := []*service.Error{err}
+
 	service.SetRequestErrors(r.Request(), errors)
 
 	response := &JSONResponse{

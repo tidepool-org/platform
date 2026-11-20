@@ -2,6 +2,7 @@ package client_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -289,7 +290,7 @@ var _ = Describe("client", func() {
 							It("returns success", func() {
 								dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, mockTokenSource)
 								Expect(err).ToNot(HaveOccurred())
-								Expect(dataRangeResponse).To(Equal(responseDataRangesResponse))
+								Expect(dataRangeResponse).To(Equal(withRaw(responseDataRangesResponse)))
 							})
 						})
 					}
@@ -1570,10 +1571,19 @@ var _ = Describe("client", func() {
 					server.AppendHandlers(RespondWith(http.StatusOK, test.MarshalResponseBody(responseDataRangesResponse), responseHeaders))
 					mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(http.DefaultClient, nil)
 					mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(true, nil)
-					Expect(clnt.GetDataRange(ctx, nil, mockTokenSource)).To(Equal(responseDataRangesResponse))
+					Expect(clnt.GetDataRange(ctx, nil, mockTokenSource)).To(Equal(withRaw(responseDataRangesResponse)))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
 		})
 	})
 })
+
+// The raw object is captured from the response body, as decoded from JSON, for inspection
+func withRaw(response *dexcom.DataRangesResponse) *dexcom.DataRangesResponse {
+	var raw map[string]any
+	Expect(json.Unmarshal(test.MarshalResponseBody(response), &raw)).To(Succeed())
+	expected := *response
+	expected.Raw = raw
+	return &expected
+}

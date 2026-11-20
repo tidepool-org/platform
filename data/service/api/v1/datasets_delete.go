@@ -32,7 +32,7 @@ func DataSetsDelete(dataServiceContext dataService.Context) {
 
 	targetUserID := dataSet.UserID
 	if targetUserID == nil || *targetUserID == "" {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to get user id from data set")
+		dataServiceContext.RespondWithInternalServerFailure("Unable to get user id from data set", nil)
 		return
 	}
 

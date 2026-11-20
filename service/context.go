@@ -9,9 +9,8 @@ type Context interface {
 	Request() *rest.Request
 
 	RespondWithError(err *Error)
-	RespondWithInternalServerFailure(message string, failure ...interface{})
-	RespondWithStatusAndErrors(statusCode int, errors []*Error)
-	RespondWithStatusAndData(statusCode int, data interface{})
+	RespondWithInternalServerFailure(message string, err error)
+	RespondWithStatusAndData(statusCode int, data any)
 }
 
 type Meta struct {

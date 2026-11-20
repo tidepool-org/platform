@@ -16,6 +16,15 @@ func ErrorInternalServerFailure() *Error {
 	}
 }
 
+func ErrorResourceNotFound() *Error {
+	return &Error{
+		Code:   "resource-not-found",
+		Status: http.StatusNotFound,
+		Title:  "resource-not-found",
+		Detail: "resource not found",
+	}
+}
+
 func ErrorUnauthenticated() *Error {
 	return &Error{
 		Code:   "unauthenticated",

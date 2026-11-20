@@ -84,8 +84,7 @@ func GetAlert(dCtx service.Context) {
 	alert, err := repo.Get(ctx, cfg)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			dCtx.RespondWithStatusAndErrors(http.StatusNotFound,
-				[]*platform.Error{platform.ErrorValueNotExists()})
+			dCtx.RespondWithError(platform.ErrorResourceNotFound())
 			return
 		}
 		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
