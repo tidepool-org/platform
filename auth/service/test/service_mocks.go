@@ -21,6 +21,7 @@ import (
 	auth "github.com/tidepool-org/platform/auth"
 	service "github.com/tidepool-org/platform/auth/service"
 	store "github.com/tidepool-org/platform/auth/store"
+	cluster "github.com/tidepool-org/platform/cluster"
 	config "github.com/tidepool-org/platform/config"
 	log "github.com/tidepool-org/platform/log"
 	provider "github.com/tidepool-org/platform/provider"
@@ -162,6 +163,44 @@ func (c *MockServiceAuthStoreCall) Do(f func() store.Store) *MockServiceAuthStor
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockServiceAuthStoreCall) DoAndReturn(f func() store.Store) *MockServiceAuthStoreCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// ClusterReleaseReporter mocks base method.
+func (m *MockService) ClusterReleaseReporter() cluster.ReleaseReporter {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClusterReleaseReporter")
+	ret0, _ := ret[0].(cluster.ReleaseReporter)
+	return ret0
+}
+
+// ClusterReleaseReporter indicates an expected call of ClusterReleaseReporter.
+func (mr *MockServiceMockRecorder) ClusterReleaseReporter() *MockServiceClusterReleaseReporterCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterReleaseReporter", reflect.TypeOf((*MockService)(nil).ClusterReleaseReporter))
+	return &MockServiceClusterReleaseReporterCall{Call: call}
+}
+
+// MockServiceClusterReleaseReporterCall wrap *gomock.Call
+type MockServiceClusterReleaseReporterCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockServiceClusterReleaseReporterCall) Return(arg0 cluster.ReleaseReporter) *MockServiceClusterReleaseReporterCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockServiceClusterReleaseReporterCall) Do(f func() cluster.ReleaseReporter) *MockServiceClusterReleaseReporterCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockServiceClusterReleaseReporterCall) DoAndReturn(f func() cluster.ReleaseReporter) *MockServiceClusterReleaseReporterCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

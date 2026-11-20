@@ -13,6 +13,7 @@ import (
 	authService "github.com/tidepool-org/platform/auth/service"
 	authStore "github.com/tidepool-org/platform/auth/store"
 	authStoreTest "github.com/tidepool-org/platform/auth/store/test"
+	"github.com/tidepool-org/platform/cluster"
 	"github.com/tidepool-org/platform/provider"
 	providerTest "github.com/tidepool-org/platform/provider/test"
 	serviceTest "github.com/tidepool-org/platform/service/test"
@@ -42,6 +43,8 @@ type Service struct {
 	PartnerSecretsImpl                        *appvalidate.PartnerSecrets
 	TwiistServiceAccountAuthorizerInvocations int
 	TwiistServiceAccountAuthorizerImpl        auth.ServiceAccountAuthorizer
+	ClusterReleaseReporterInvocations         int
+	ClusterReleaseReporterImpl                cluster.ReleaseReporter
 }
 
 func NewService() *Service {
@@ -119,6 +122,12 @@ func (s *Service) TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer
 	s.TwiistServiceAccountAuthorizerInvocations++
 
 	return s.TwiistServiceAccountAuthorizerImpl
+}
+
+func (s *Service) ClusterReleaseReporter() cluster.ReleaseReporter {
+	s.ClusterReleaseReporterInvocations++
+
+	return s.ClusterReleaseReporterImpl
 }
 
 func (s *Service) Expectations() {

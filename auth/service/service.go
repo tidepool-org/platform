@@ -9,6 +9,7 @@ import (
 	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/auth"
 	authStore "github.com/tidepool-org/platform/auth/store"
+	"github.com/tidepool-org/platform/cluster"
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/task"
@@ -35,6 +36,8 @@ type Service interface {
 	PartnerSecrets() *appvalidate.PartnerSecrets
 
 	TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer
+
+	ClusterReleaseReporter() cluster.ReleaseReporter
 }
 
 type Status struct {
