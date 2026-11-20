@@ -245,8 +245,8 @@ func (p *Processor) updateClinicSummaries() *work.ProcessResult {
 
 // updateRangeSetSummaries reports, for each glycemic range set other than the standard
 // one that the user's patient records use, a summary computed for it, tagged with its key.
-// The range sets are found afresh on each attempt from the records the clinic service
-// lists, so the metadata records nothing; the clinic service accepts a report resent by a
+// The range sets are found afresh on each attempt from the glycemic ranges the clinic
+// service lists, so the metadata records nothing; the clinic service accepts a report resent by a
 // retry as a redelivery.
 //
 // A record whose ranges describe no range set platform knows is skipped and logged as an
@@ -261,17 +261,17 @@ func (p *Processor) updateRangeSetSummaries() *work.ProcessResult {
 	userID := *p.Metadata().UserID
 	logger := log.LoggerFromContext(p.Context())
 
-	relationships, err := p.ClinicsClient.ListClinicsForPatient(p.Context(), userID)
+	records, err := p.ClinicsClient.ListGlycemicRangesForPatient(p.Context(), userID)
 	if err != nil {
-		return p.Failing(errors.Wrap(err, "unable to list clinics for patient"))
+		return p.Failing(errors.Wrap(err, "unable to list glycemic ranges for patient"))
 	}
 
 	var keys []string
 	rangeSets := map[string]summaryTypes.RangeSet{}
-	for _, relationship := range relationships {
-		rangeSet, err := clinics.RangeSetFor(relationship.Patient.GlycemicRanges)
+	for _, record := range records {
+		rangeSet, err := clinics.RangeSetFor(record.GlycemicRanges)
 		if err != nil {
-			logger.WithError(err).WithField("clinicId", relationship.Clinic.Id).
+			logger.WithError(err).WithField("clinicId", record.ClinicId).
 				Error("unable to summarize for the glycemic ranges of a patient record")
 			continue
 		}

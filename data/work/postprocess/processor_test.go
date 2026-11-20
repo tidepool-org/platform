@@ -99,15 +99,15 @@ var _ = Describe("Processor", func() {
 		return processor.Process(ctx, wrk, processingUpdater)
 	}
 
-	newRelationships := func(ranges ...*clinic.GlycemicRangesV1) []clinic.PatientClinicRelationshipV1 {
-		relationships := make([]clinic.PatientClinicRelationshipV1, 0, len(ranges))
+	newRecords := func(ranges ...*clinic.GlycemicRangesV1) []clinic.PatientGlycemicRangesV1 {
+		records := make([]clinic.PatientGlycemicRangesV1, 0, len(ranges))
 		for _, each := range ranges {
-			relationships = append(relationships, clinic.PatientClinicRelationshipV1{
-				Clinic:  clinic.ClinicV1{Id: pointer.FromAny(clinic.ClinicIdV1(primitive.NewObjectID().Hex()))},
-				Patient: clinic.PatientV1{Id: &userID, GlycemicRanges: each},
+			records = append(records, clinic.PatientGlycemicRangesV1{
+				ClinicId:       pointer.FromAny(clinic.ClinicIdV1(primitive.NewObjectID().Hex())),
+				GlycemicRanges: each,
 			})
 		}
-		return relationships
+		return records
 	}
 
 	BeforeEach(func() {
@@ -269,14 +269,14 @@ var _ = Describe("Processor", func() {
 			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(newSummariesUpdate(summaryTypes.SummaryTypeCGM), nil)
 			expectProcessingUpdate()
 			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any(), gomock.Any()).Return(true, nil)
-			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(nil, errorsTest.RandomError())
+			clinicsClient.EXPECT().ListGlycemicRangesForPatient(gomock.Any(), userID).Return(nil, errorsTest.RandomError())
 		}),
 		Entry("summarizing for a range set", func() {
 			expectListNone()
 			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(newSummariesUpdate(summaryTypes.SummaryTypeCGM), nil)
 			expectProcessingUpdate()
 			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any(), gomock.Any()).Return(true, nil)
-			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges()), nil)
+			clinicsClient.EXPECT().ListGlycemicRangesForPatient(gomock.Any(), userID).Return(newRecords(highRiskRanges()), nil)
 			summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(nil, nil, errorsTest.RandomError())
 		}),
 		Entry("reporting a range set summary to the clinic service", func() {
@@ -284,7 +284,7 @@ var _ = Describe("Processor", func() {
 			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(newSummariesUpdate(summaryTypes.SummaryTypeCGM), nil)
 			expectProcessingUpdate()
 			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any(), gomock.Any()).Return(true, nil)
-			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges()), nil)
+			clinicsClient.EXPECT().ListGlycemicRangesForPatient(gomock.Any(), userID).Return(newRecords(highRiskRanges()), nil)
 			summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(summaryTest.RandomCGMSummary(userID), nil, nil)
 			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any(), gomock.Any()).Return(false, errorsTest.RandomError())
 		}),
@@ -468,7 +468,7 @@ var _ = Describe("Processor", func() {
 			custom := customRanges("custom:mg/dL:54,70,180,250")
 			gomock.InOrder(
 				expectStandardReport(true),
-				clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges(), custom), nil),
+				clinicsClient.EXPECT().ListGlycemicRangesForPatient(gomock.Any(), userID).Return(newRecords(highRiskRanges(), custom), nil),
 				summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).DoAndReturn(
 					func(_ context.Context, _ string, rangeSet summaryTypes.RangeSet) (*summaryTypes.CGMSummary, *summaryTypes.BGMSummary, error) {
 						Expect(rangeSet.Key).To(Equal("preset:adaHighRisk"))
@@ -494,7 +494,7 @@ var _ = Describe("Processor", func() {
 
 		It("reports each range set once, however many records use it", func() {
 			expectStandardReport(true)
-			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges(), highRiskRanges()), nil)
+			clinicsClient.EXPECT().ListGlycemicRangesForPatient(gomock.Any(), userID).Return(newRecords(highRiskRanges(), highRiskRanges()), nil)
 			summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(rangeSetSummary, nil, nil)
 			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaHighRisk"), gomock.Any()).Return(true, nil)
 
@@ -505,7 +505,7 @@ var _ = Describe("Processor", func() {
 		// ranges, whether they declare them or have none
 		It("reports nothing further for records using the standard ranges", func() {
 			expectStandardReport(true)
-			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(standardRanges(), nil), nil)
+			clinicsClient.EXPECT().ListGlycemicRangesForPatient(gomock.Any(), userID).Return(newRecords(standardRanges(), nil), nil)
 
 			Expect(process().Result).To(Equal(work.ResultDelete))
 		})
@@ -515,7 +515,7 @@ var _ = Describe("Processor", func() {
 		It("reports the other range sets, then fails, when one fails to be summarized", func() {
 			expectStandardReport(true)
 			custom := customRanges("custom:mg/dL:54,70,180,250")
-			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges(), custom), nil)
+			clinicsClient.EXPECT().ListGlycemicRangesForPatient(gomock.Any(), userID).Return(newRecords(highRiskRanges(), custom), nil)
 			gomock.InOrder(
 				summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(nil, nil, errorsTest.RandomError()),
 				summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(rangeSetSummary, nil, nil),
@@ -528,7 +528,7 @@ var _ = Describe("Processor", func() {
 		It("reports the other range sets, then fails, when one fails to be reported", func() {
 			expectStandardReport(true)
 			custom := customRanges("custom:mg/dL:54,70,180,250")
-			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges(), custom), nil)
+			clinicsClient.EXPECT().ListGlycemicRangesForPatient(gomock.Any(), userID).Return(newRecords(highRiskRanges(), custom), nil)
 			summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(rangeSetSummary, nil, nil).Times(2)
 			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaHighRisk"), gomock.Any()).Return(false, errorsTest.RandomError())
 			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("custom:mg/dL:54,70,180,250"), gomock.Any()).Return(true, nil)
@@ -536,9 +536,9 @@ var _ = Describe("Processor", func() {
 			Expect(process().Result).To(Equal(work.ResultFailing))
 		})
 
-		It("fails when the patient records cannot be listed", func() {
+		It("fails when the glycemic ranges of the patient records cannot be listed", func() {
 			expectStandardReport(true)
-			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(nil, errorsTest.RandomError())
+			clinicsClient.EXPECT().ListGlycemicRangesForPatient(gomock.Any(), userID).Return(nil, errorsTest.RandomError())
 
 			Expect(process().Result).To(Equal(work.ResultFailing))
 		})
@@ -548,7 +548,7 @@ var _ = Describe("Processor", func() {
 			expectStandardReport(true)
 			invalid := customRanges("custom:mg/dL:104,105,180,")
 			invalid.Custom.Thresholds = clinic.GlycemicRangesThresholdsV1{VeryLow: pointer.FromFloat64(104), Low: 105, High: 180}
-			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(invalid, highRiskRanges()), nil)
+			clinicsClient.EXPECT().ListGlycemicRangesForPatient(gomock.Any(), userID).Return(newRecords(invalid, highRiskRanges()), nil)
 			summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(rangeSetSummary, nil, nil)
 			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaHighRisk"), gomock.Any()).Return(true, nil)
 
@@ -557,7 +557,7 @@ var _ = Describe("Processor", func() {
 
 		It("reports nothing for a range set without a stored summary to compute from", func() {
 			expectStandardReport(true)
-			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges()), nil)
+			clinicsClient.EXPECT().ListGlycemicRangesForPatient(gomock.Any(), userID).Return(newRecords(highRiskRanges()), nil)
 			summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(nil, nil, nil)
 
 			Expect(process().Result).To(Equal(work.ResultDelete))
@@ -589,7 +589,7 @@ var _ = Describe("Processor", func() {
 					Expect(patientSummary.BgmStats).ToNot(BeNil())
 					return true, nil
 				})
-			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges()), nil)
+			clinicsClient.EXPECT().ListGlycemicRangesForPatient(gomock.Any(), userID).Return(newRecords(highRiskRanges()), nil)
 			summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(summaryTest.RandomCGMSummary(userID), summaryTest.RandomBGMSummary(userID), nil)
 			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaHighRisk"), gomock.Any()).Return(true, nil)
 			clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
@@ -610,7 +610,7 @@ var _ = Describe("Processor", func() {
 			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(newSummariesUpdate(), nil)
 			gomock.InOrder(
 				clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaStandard"), gomock.Any()).Return(true, nil),
-				clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges()), nil),
+				clinicsClient.EXPECT().ListGlycemicRangesForPatient(gomock.Any(), userID).Return(newRecords(highRiskRanges()), nil),
 				summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(summaryTest.RandomCGMSummary(userID), summaryTest.RandomBGMSummary(userID), nil),
 				clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaHighRisk"), gomock.Any()).Return(true, nil),
 				clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil),
@@ -622,7 +622,7 @@ var _ = Describe("Processor", func() {
 		It("requests no EHR synchronization when a range set summary can't be reported", func() {
 			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(newSummariesUpdate(), nil)
 			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaStandard"), gomock.Any()).Return(true, nil)
-			clinicsClient.EXPECT().ListClinicsForPatient(gomock.Any(), userID).Return(newRelationships(highRiskRanges()), nil)
+			clinicsClient.EXPECT().ListGlycemicRangesForPatient(gomock.Any(), userID).Return(newRecords(highRiskRanges()), nil)
 			summarizers.EXPECT().SummarizeForRangeSet(gomock.Any(), userID, gomock.Any()).Return(summaryTest.RandomCGMSummary(userID), summaryTest.RandomBGMSummary(userID), nil)
 			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, pointer.FromString("preset:adaHighRisk"), gomock.Any()).Return(false, errorsTest.RandomError())
 

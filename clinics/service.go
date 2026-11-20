@@ -9,6 +9,7 @@ import (
 	"go.uber.org/fx"
 
 	clinic "github.com/tidepool-org/clinic/client"
+
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
@@ -31,7 +32,7 @@ type Client interface {
 	SyncEHRDataForPatient(ctx context.Context, patientID string) error
 	GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams url.Values) ([]clinic.PatientV1, error)
 	GetPatient(ctx context.Context, clinicID, patientID string) (*clinic.PatientV1, error)
-	ListClinicsForPatient(ctx context.Context, patientID string) ([]clinic.PatientClinicRelationshipV1, error)
+	ListGlycemicRangesForPatient(ctx context.Context, patientID string) ([]clinic.PatientGlycemicRangesV1, error)
 	UpdatePatientSummary(ctx context.Context, patientID string, glycemicRangesKey *string, patientSummary *clinic.PatientSummaryV1) (bool, error)
 	// DeletePatientSummary deletes the summary with the id from every patient record
 	// holding it.
@@ -230,21 +231,24 @@ func (d *defaultClient) SyncEHRDataForPatient(ctx context.Context, patientID str
 	return nil
 }
 
-// ListClinicsForPatient returns the patient records of the user, each with its clinic,
-// or none when the clinic service reports the user as not found.
-func (d *defaultClient) ListClinicsForPatient(ctx context.Context, patientID string) ([]clinic.PatientClinicRelationshipV1, error) {
+// ListGlycemicRangesForPatient returns the glycemic ranges of each patient record of the
+// user, or none when the user is not a patient of any clinic. Not found is an error: the
+// clinic service answers with an empty list for a user without patient records, so it can
+// only come from a clinic service deployed without the route, and the listing must be
+// retried.
+func (d *defaultClient) ListGlycemicRangesForPatient(ctx context.Context,
+	patientID string) ([]clinic.PatientGlycemicRangesV1, error) {
+
 	return page.CollectWithSize(page.PaginationSizeMaximum,
-		func(pagination page.Pagination) ([]clinic.PatientClinicRelationshipV1, error) {
-			response, err := d.httpClient.ListClinicsForPatientWithResponse(ctx, patientID,
-				&clinic.ListClinicsForPatientParams{
+		func(pagination page.Pagination) ([]clinic.PatientGlycemicRangesV1, error) {
+			response, err := d.httpClient.ListGlycemicRangesForPatientWithResponse(ctx,
+				clinic.PatientId(patientID),
+				&clinic.ListGlycemicRangesForPatientParams{
 					Offset: pointer.FromInt(pagination.Page * pagination.Size),
 					Limit:  pointer.FromInt(pagination.Size),
 				})
 			if err != nil {
 				return nil, err
-			}
-			if response.StatusCode() == http.StatusNotFound {
-				return nil, nil
 			}
 			if response.StatusCode() != http.StatusOK {
 				err = errors.Preparedf(ErrorCodeClinicClientFailure,

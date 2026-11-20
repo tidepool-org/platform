@@ -313,45 +313,6 @@ func (c *MockClientGetPatientsCall) DoAndReturn(f func(context.Context, string, 
 	return c
 }
 
-// ListClinicsForPatient mocks base method.
-func (m *MockClient) ListClinicsForPatient(ctx context.Context, patientID string) ([]client.PatientClinicRelationshipV1, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListClinicsForPatient", ctx, patientID)
-	ret0, _ := ret[0].([]client.PatientClinicRelationshipV1)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListClinicsForPatient indicates an expected call of ListClinicsForPatient.
-func (mr *MockClientMockRecorder) ListClinicsForPatient(ctx, patientID any) *MockClientListClinicsForPatientCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClinicsForPatient", reflect.TypeOf((*MockClient)(nil).ListClinicsForPatient), ctx, patientID)
-	return &MockClientListClinicsForPatientCall{Call: call}
-}
-
-// MockClientListClinicsForPatientCall wrap *gomock.Call
-type MockClientListClinicsForPatientCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockClientListClinicsForPatientCall) Return(arg0 []client.PatientClinicRelationshipV1, arg1 error) *MockClientListClinicsForPatientCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockClientListClinicsForPatientCall) Do(f func(context.Context, string) ([]client.PatientClinicRelationshipV1, error)) *MockClientListClinicsForPatientCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockClientListClinicsForPatientCall) DoAndReturn(f func(context.Context, string) ([]client.PatientClinicRelationshipV1, error)) *MockClientListClinicsForPatientCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // ListEHREnabledClinics mocks base method.
 func (m *MockClient) ListEHREnabledClinics(ctx context.Context) ([]client.ClinicV1, error) {
 	m.ctrl.T.Helper()
@@ -387,6 +348,45 @@ func (c *MockClientListEHREnabledClinicsCall) Do(f func(context.Context) ([]clie
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockClientListEHREnabledClinicsCall) DoAndReturn(f func(context.Context) ([]client.ClinicV1, error)) *MockClientListEHREnabledClinicsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// ListGlycemicRangesForPatient mocks base method.
+func (m *MockClient) ListGlycemicRangesForPatient(ctx context.Context, patientID string) ([]client.PatientGlycemicRangesV1, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListGlycemicRangesForPatient", ctx, patientID)
+	ret0, _ := ret[0].([]client.PatientGlycemicRangesV1)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListGlycemicRangesForPatient indicates an expected call of ListGlycemicRangesForPatient.
+func (mr *MockClientMockRecorder) ListGlycemicRangesForPatient(ctx, patientID any) *MockClientListGlycemicRangesForPatientCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListGlycemicRangesForPatient", reflect.TypeOf((*MockClient)(nil).ListGlycemicRangesForPatient), ctx, patientID)
+	return &MockClientListGlycemicRangesForPatientCall{Call: call}
+}
+
+// MockClientListGlycemicRangesForPatientCall wrap *gomock.Call
+type MockClientListGlycemicRangesForPatientCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockClientListGlycemicRangesForPatientCall) Return(arg0 []client.PatientGlycemicRangesV1, arg1 error) *MockClientListGlycemicRangesForPatientCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockClientListGlycemicRangesForPatientCall) Do(f func(context.Context, string) ([]client.PatientGlycemicRangesV1, error)) *MockClientListGlycemicRangesForPatientCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockClientListGlycemicRangesForPatientCall) DoAndReturn(f func(context.Context, string) ([]client.PatientGlycemicRangesV1, error)) *MockClientListGlycemicRangesForPatientCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
