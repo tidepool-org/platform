@@ -15,6 +15,7 @@ import (
 
 	authTest "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/clinics"
+	"github.com/tidepool-org/platform/pointer"
 	summaryTest "github.com/tidepool-org/platform/summary/test"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
@@ -178,14 +179,15 @@ var _ = Describe("Client", func() {
 		})
 	})
 
-	Context("ListClinicsForPatient", func() {
-		newRelationships := func(count int) []byte {
-			relationships := make([]clinic.PatientClinicRelationshipV1, count)
-			for i := range relationships {
-				relationships[i].Patient.Id = &patientID
-				relationships[i].Patient.GlycemicRanges = &clinic.GlycemicRangesV1{Type: clinic.Preset, Preset: clinic.ADAHighRisk, Key: "preset:adaHighRisk"}
+	Context("ListGlycemicRangesForPatient", func() {
+		newRecords := func(count int) []byte {
+			records := make([]clinic.PatientGlycemicRangesV1, count)
+			for i := range records {
+				records[i].ClinicId = pointer.FromAny(clinic.ClinicIdV1("2fe2488217ee43e1b2e83c2f"))
+				records[i].GlycemicRanges = &clinic.GlycemicRangesV1{
+					Type: clinic.Preset, Preset: clinic.ADAHighRisk, Key: "preset:adaHighRisk"}
 			}
-			encoded, err := json.Marshal(relationships)
+			encoded, err := json.Marshal(records)
 			Expect(err).ToNot(HaveOccurred())
 			return encoded
 		}
@@ -194,37 +196,46 @@ var _ = Describe("Client", func() {
 			responseStatusCode = http.StatusOK
 		})
 
-		It("lists the patient records of the user with their glycemic ranges", func() {
-			responseBodies = [][]byte{newRelationships(2)}
-			relationships, err := client.ListClinicsForPatient(context.Background(), patientID)
+		It("lists the glycemic ranges of the patient records of the user", func() {
+			responseBodies = [][]byte{newRecords(2)}
+			records, err := client.ListGlycemicRangesForPatient(context.Background(), patientID)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(requestPath).To(Equal("/v1/patients/" + patientID + "/clinics"))
+			Expect(requestPath).To(Equal("/v1/patients/" + patientID + "/glycemic_ranges"))
 			Expect(requestQuery.Get("limit")).To(Equal("1000"))
-			Expect(relationships).To(HaveLen(2))
-			Expect(relationships[0].Patient.GlycemicRanges.Key).To(Equal("preset:adaHighRisk"))
+			Expect(records).To(HaveLen(2))
+			Expect(records[0].ClinicId).To(HaveValue(Equal("2fe2488217ee43e1b2e83c2f")))
+			Expect(records[0].GlycemicRanges.Key).To(Equal("preset:adaHighRisk"))
 		})
 
 		It("lists every page", func() {
 			// Each request takes a server session token
 			externalAccessor.ServerSessionTokenOutputs = append(externalAccessor.ServerSessionTokenOutputs,
 				authTest.ServerSessionTokenOutput{Token: authTest.NewSessionToken()})
-			responseBodies = [][]byte{newRelationships(1000), newRelationships(1)}
-			relationships, err := client.ListClinicsForPatient(context.Background(), patientID)
+			responseBodies = [][]byte{newRecords(1000), newRecords(1)}
+			records, err := client.ListGlycemicRangesForPatient(context.Background(), patientID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(requestQuery.Get("offset")).To(Equal("1000"))
-			Expect(relationships).To(HaveLen(1001))
+			Expect(records).To(HaveLen(1001))
 		})
 
-		It("lists nothing when the user is not found", func() {
-			responseStatusCode = http.StatusNotFound
-			relationships, err := client.ListClinicsForPatient(context.Background(), patientID)
+		It("lists nothing when the user has no patient records", func() {
+			responseBodies = [][]byte{[]byte("[]")}
+			records, err := client.ListGlycemicRangesForPatient(context.Background(), patientID)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(relationships).To(BeEmpty())
+			Expect(records).To(BeEmpty())
+		})
+
+		// The clinic service never answers so for this route, so it must be one deployed
+		// without the route
+		It("returns an error when the clinic service reports not found", func() {
+			responseStatusCode = http.StatusNotFound
+			_, err := client.ListGlycemicRangesForPatient(context.Background(), patientID)
+			Expect(err).To(MatchError(ContainSubstring("unexpected response status code 404")))
 		})
 
 		It("returns an error when the clinic service reports an unexpected status", func() {
 			responseStatusCode = http.StatusInternalServerError
-			_, err := client.ListClinicsForPatient(context.Background(), patientID)
+			_, err := client.ListGlycemicRangesForPatient(context.Background(), patientID)
 			Expect(err).To(MatchError(ContainSubstring("unexpected response status code 500")))
 		})
 	})
