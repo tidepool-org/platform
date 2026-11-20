@@ -160,11 +160,7 @@ func (c *mockDataServiceContext) RespondWithError(err *service.Error) {
 	c.t.Errorf("got error: %s", err)
 }
 
-func (c *mockDataServiceContext) RespondWithInternalServerFailure(message string, failure ...interface{}) {
-	panic("not implemented") // TODO: Implement
-}
-
-func (c *mockDataServiceContext) RespondWithStatusAndErrors(statusCode int, errors []*service.Error) {
+func (c *mockDataServiceContext) RespondWithInternalServerFailure(message string, err error) {
 	panic("not implemented") // TODO: Implement
 }
 
