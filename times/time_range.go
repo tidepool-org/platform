@@ -50,6 +50,29 @@ func (t TimeRange) InLocation(location *time.Location) TimeRange {
 	return inLocation
 }
 
+// Span returns the smallest time range covering both time ranges, including any gap between them. A nil From or To
+// means no information, so it yields to the other time range. Equal times keep this time range's value. If the result
+// has From after To, both are nil. Since nil also means no information, the grouping of chained calls can then change
+// the result. For example, ({From: 3} ∪ {To: 2}) ∪ {From: 1} is {From: 1}, but {From: 3} ∪ ({To: 2} ∪ {From: 1}) is
+// {From: 1, To: 2}, where ∪ is Span.
+func (t TimeRange) Span(other TimeRange) TimeRange {
+	span := TimeRange{}
+	if t.From != nil && (other.From == nil || !other.From.Before(*t.From)) {
+		span.From = pointer.Clone(t.From)
+	} else {
+		span.From = pointer.Clone(other.From)
+	}
+	if t.To != nil && (other.To == nil || !other.To.After(*t.To)) {
+		span.To = pointer.Clone(t.To)
+	} else {
+		span.To = pointer.Clone(other.To)
+	}
+	if span.From != nil && span.To != nil && span.From.After(*span.To) {
+		return TimeRange{}
+	}
+	return span
+}
+
 func (t TimeRange) Clamped(minimum time.Time, maximum time.Time) TimeRange {
 	clamped := TimeRange{}
 	if t.From != nil {

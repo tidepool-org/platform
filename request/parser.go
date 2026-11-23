@@ -21,6 +21,16 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
+// Allows inspection of original object before ObjectParsable is parsed (only applies to ObjectParsable)
+type ObjectInspectable interface {
+	Inspect(object map[string]any) error
+}
+
+// Allows inspection of original array before ArrayParsable is parsed (only applies to ArrayParsable)
+type ArrayInspectable interface {
+	Inspect(array []any) error
+}
+
 type DecodeOption struct {
 	ignoreNotParsed *bool
 }
@@ -158,6 +168,12 @@ func ParseObjectParsable(ctx context.Context, source structure.Source, object ma
 		return errors.New("object parsable is missing")
 	}
 
+	if objectInspectable, ok := objectParsable.(ObjectInspectable); ok {
+		if err := objectInspectable.Inspect(object); err != nil {
+			return err
+		}
+	}
+
 	parser := structureParser.NewObject(log.LoggerFromContext(ctx), &object).WithSource(source)
 	objectParsable.Parse(parser)
 	if !DecodeOptions(decodeOptions).IgnoreNotParsed() {
@@ -180,6 +196,12 @@ func ParseArrayParsable(ctx context.Context, source structure.Source, array []an
 	}
 	if arrayParsable == nil {
 		return errors.New("array parsable is missing")
+	}
+
+	if arrayInspectable, ok := arrayParsable.(ArrayInspectable); ok {
+		if err := arrayInspectable.Inspect(array); err != nil {
+			return err
+		}
 	}
 
 	parser := structureParser.NewArray(log.LoggerFromContext(ctx), &array).WithSource(source)

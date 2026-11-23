@@ -3,9 +3,11 @@ package middleware
 import (
 	"net/http"
 	"runtime/debug"
+	"strings"
 
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/errors"
 	serviceContext "github.com/tidepool-org/platform/service/context"
 )
 
@@ -23,7 +25,9 @@ func (r *Recover) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 					if responder, responderErr := serviceContext.NewResponder(res, req); responderErr != nil {
 						res.WriteHeader(http.StatusInternalServerError)
 					} else {
-						responder.RespondWithInternalServerFailure("Recovered from unhandled panic", string(debug.Stack()))
+						stack := strings.Split(strings.ReplaceAll(string(debug.Stack()), "\t", ""), "\n")
+						err := errors.WithMeta(errors.Newf("unhandled panic: %v", r), stack)
+						responder.RespondWithInternalServerFailure("Recovered from unhandled panic", err)
 					}
 				}
 			}()

@@ -194,17 +194,18 @@ func (s *sourceWrapper) Pointer() string {
 }
 
 func WithMeta(err error, meta any) error {
-	if _, arrayOK := err.(*array); arrayOK {
-		return err
+	if err == nil {
+		return nil
+	} else if _, arrayOK := err.(*array); arrayOK {
+		return WithMeta(Wrap(err, "unable to add meta to array error"), meta)
 	} else if objectErr, objectOK := err.(*object); objectOK {
 		return objectErr.withMeta(meta)
-	} else if err != nil {
+	} else {
 		return &object{
 			Detail: err.Error(),
 			Meta:   meta,
 		}
 	}
-	return nil
 }
 
 func Code(err error) string {

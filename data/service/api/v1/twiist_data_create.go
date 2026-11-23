@@ -80,7 +80,7 @@ func NewTwiistDataCreateHandler(datasetDataCreate func(ctx dataService.Context))
 		// Use last data set id
 		if dataSrc.DataSetID == nil {
 			lgr.Warnf("no data sets found for tidepool link id %q", tidepoolLinkID)
-			dataServiceContext.RespondWithInternalServerFailure(fmt.Sprintf("data set id is missing in data source %q", dataSrc.ID))
+			dataServiceContext.RespondWithInternalServerFailure(fmt.Sprintf("data set id is missing in data source %q", dataSrc.ID), nil)
 			return
 		}
 

@@ -105,7 +105,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
 		return
 	} else if deduplicator == nil {
-		dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
+		dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found", nil)
 		return
 	} else if err = deduplicator.AddData(ctx, dataSet, datumArray); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to add data", err)

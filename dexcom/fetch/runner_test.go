@@ -110,15 +110,15 @@ var _ = Describe("Runner", func() {
 		})
 
 		It("returns the runner deadline", func() {
-			Expect(runner.GetRunnerDeadline()).To(Equal(45 * time.Minute))
+			Expect(runner.GetRunnerDeadline()).To(Equal(40 * time.Minute))
 		})
 
 		It("returns the runner timeout", func() {
-			Expect(runner.GetRunnerTimeout()).To(Equal(30 * time.Minute))
+			Expect(runner.GetRunnerTimeout()).To(Equal(35 * time.Minute))
 		})
 
 		It("returns the runner duration maximum", func() {
-			Expect(runner.GetRunnerDurationMaximum()).To(Equal(15 * time.Minute))
+			Expect(runner.GetRunnerDurationMaximum()).To(Equal(30 * time.Minute))
 		})
 
 		Context("with context", func() {
