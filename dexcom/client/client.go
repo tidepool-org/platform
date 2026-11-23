@@ -57,6 +57,10 @@ func New(cfg *client.Config, httpClient *http.Client, tknSrcSrc oauth.TokenSourc
 }
 
 func (c *Client) GetDataRange(ctx context.Context, lastSyncTime *time.Time, tokenSource oauth.TokenSource) (*dexcom.DataRangesResponse, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+
 	dataRangeResponse := &dexcom.DataRangesResponse{}
 	paths := []string{"v3", "users", "self", "dataRange"}
 
@@ -68,6 +72,7 @@ func (c *Client) GetDataRange(ctx context.Context, lastSyncTime *time.Time, toke
 	}
 
 	if err := c.sendDexcomRequest(ctx, "GET", url, dataRangeResponse, tokenSource); err != nil {
+		log.LoggerFromContext(ctx).WithField("response", dataRangeResponse.Raw).Error("unable to get data range")
 		return nil, errors.Wrap(err, "unable to get data range")
 	}
 

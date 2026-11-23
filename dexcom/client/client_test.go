@@ -138,7 +138,7 @@ var _ = Describe("client", func() {
 
 				It("returns error when context is missing", func() {
 					dataRangeResponse, err := clnt.GetDataRange(context.Context(nil), lastSyncTime, mockTokenSource)
-					Expect(err).To(MatchError("unable to get data range; context is missing"))
+					Expect(err).To(MatchError("context is missing"))
 					Expect(dataRangeResponse).To(BeNil())
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})

@@ -563,7 +563,7 @@ func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
 		return nil, ErrorResourceFailureError(errors.New("data ranges response is missing"))
 	}
 
-	lgr := t.logger.WithFields(log.Fields{"response": response, "raw": response.Raw})
+	lgr := t.logger.WithField("response", response)
 
 	// Get data range, if none valid, then indicate nothing to fetch
 	dataRange := response.DataRange()
@@ -572,13 +572,21 @@ func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
 		return nil, nil
 	}
 
-	// Clamp data range, if none valid, then indicate nothing to fetch
+	// Calculate start time minimum (latest data time or 2015) and end time maximum (now)
 	startTimeMinimum := t.getStartTimeMinimum()
 	endTimeMaximum := time.Now()
+
+	// Calculate start and end time clamped to maximums
 	startTime := ClampTime(*dataRange.Start.SystemTimeRaw(), startTimeMinimum, endTimeMaximum)
 	endTime := ClampTime(*dataRange.End.SystemTimeRaw(), startTimeMinimum, endTimeMaximum)
-	if !startTime.Before(endTime) {
-		lgr.WithFields(log.Fields{"startTimeMinimum": startTimeMinimum, "endTimeMaximum": endTimeMaximum, "startTime": startTime, "endTime": endTime}).Info("Start time is not before end time")
+
+	// Clamp data range, if none valid, then indicate nothing to fetch
+	lgr = lgr.WithFields(log.Fields{"startTimeMinimum": startTimeMinimum, "endTimeMaximum": endTimeMaximum, "startTime": startTime, "endTime": endTime})
+	if startTime.After(endTime) {
+		lgr.Error("Start time is after end time")
+		return nil, nil
+	} else if startTime.Equal(endTime) {
+		lgr.Info("Start time and end time are equal; no new data")
 		return nil, nil
 	}
 
