@@ -32,14 +32,26 @@ const (
 	// its data set, which the work that processes it writes.
 	MetadataKeyProcessedOrdinal = "processedOrdinal"
 
-	SortCreatedTime = "createdTime"
-	SortSequence    = "sequence"
+	// The metadata keys the incomplete bolus index covers: the boluses whose pump logs Tandem raw data carries without
+	// ending them, each with its bolus id, by which the raw data that ends one finds them.
+	MetadataKeyIncompleteBoluses = "incompleteBoluses"
+	MetadataKeyIncompleteBolusID = "bolusId"
+
+	SortCreatedTime        = "createdTime"
+	SortSequence           = "sequence"
+	SortSequenceDescending = "sequenceDescending"
 
 	ErrorCodeDataRawUpdateConflict = "data-raw-update-conflict"
 )
 
+// MetadataPathExpression matches a path into the metadata: field names separated by periods, none empty or starting
+// with a dollar sign.
+var MetadataPathExpression = regexp.MustCompile(`^[^.$][^.]*(\.[^.$][^.]*)*$`)
+
 // ListOption chooses the sort of List: SortCreatedTime by default, or SortSequence, by minimum sequence group, then
-// minimum sequence number, then created time, with raw data without a sequence first.
+// minimum sequence number, then created time, with raw data without a sequence first, or SortSequenceDescending, by
+// minimum sequence group, then minimum sequence number, the latest first. SortSequenceDescending has no created time
+// tiebreak, so an index on the minimum sequence serves it.
 type ListOption struct {
 	sort *string
 }
@@ -84,8 +96,16 @@ type Filter struct {
 	// As SequenceNumberAfter, but inclusive. Requires SequenceGroup; exclusive with SequenceNumberAfter.
 	SequenceNumberFrom *int64 `json:"sequenceNumberFrom,omitempty" bson:"sequenceNumberFrom,omitempty"`
 
+	// Raw whose minimum sequence is in SequenceGroup and before this number. Requires SequenceGroup; combines with
+	// SequenceNumberAfter or SequenceNumberFrom.
+	SequenceNumberBefore *int64 `json:"sequenceNumberBefore,omitempty" bson:"sequenceNumberBefore,omitempty"`
+
 	// Raw with a processed ordinal at or after this one; raw without one is excluded
 	ProcessedOrdinalFrom *int64 `json:"processedOrdinalFrom,omitempty" bson:"processedOrdinalFrom,omitempty"`
+
+	// Raw whose metadata has the value at each path (MetadataPathExpression); a path through an array matches any of
+	// its elements. Not parsed. Only an index covers it, as the incomplete bolus index does incomplete bolus ids.
+	Metadata map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
 }
 
 func (f *Filter) Parse(parser structure.ObjectParser) {
@@ -99,6 +119,7 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 	f.SequenceGroup = parser.Int64("sequenceGroup")
 	f.SequenceNumberAfter = parser.Int64("sequenceNumberAfter")
 	f.SequenceNumberFrom = parser.Int64("sequenceNumberFrom")
+	f.SequenceNumberBefore = parser.Int64("sequenceNumberBefore")
 	f.ProcessedOrdinalFrom = parser.Int64("processedOrdinalFrom")
 }
 
@@ -108,7 +129,7 @@ func (f *Filter) Validate(validator structure.Validator) {
 	validator.String("dataSetId", f.DataSetID).Using(data.SetIDValidator)
 	validator.StringArray("mediaTypes", f.MediaTypes).NotEmpty().EachUsing(net.MediaTypeValidator).EachUnique()
 	sequenceGroupValidator := validator.Int64("sequenceGroup", f.SequenceGroup).GreaterThanOrEqualTo(0)
-	if f.SequenceNumberAfter != nil || f.SequenceNumberFrom != nil {
+	if f.SequenceNumberAfter != nil || f.SequenceNumberFrom != nil || f.SequenceNumberBefore != nil {
 		sequenceGroupValidator.Exists()
 	}
 	validator.Int64("sequenceNumberAfter", f.SequenceNumberAfter).GreaterThanOrEqualTo(0)
@@ -116,7 +137,13 @@ func (f *Filter) Validate(validator structure.Validator) {
 	if f.SequenceNumberAfter != nil {
 		sequenceNumberFromValidator.NotExists()
 	}
+	validator.Int64("sequenceNumberBefore", f.SequenceNumberBefore).GreaterThanOrEqualTo(0)
 	validator.Int64("processedOrdinalFrom", f.ProcessedOrdinalFrom).GreaterThanOrEqualTo(0)
+	for path := range f.Metadata {
+		if !MetadataPathExpression.MatchString(path) {
+			validator.WithReference("metadata").ReportError(structureValidator.ErrorValueStringNotMatches(path, MetadataPathExpression))
+		}
+	}
 }
 
 func (f *Filter) CreatedTime() *time.Time {

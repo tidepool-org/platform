@@ -68,6 +68,31 @@ var _ = Describe("Raw", func() {
 		Expect(dataRaw.SortSequence).To(Equal("sequence"))
 	})
 
+	It("SortSequenceDescending is expected", func() {
+		Expect(dataRaw.SortSequenceDescending).To(Equal("sequenceDescending"))
+	})
+
+	It("MetadataKeyIncompleteBoluses is expected", func() {
+		Expect(dataRaw.MetadataKeyIncompleteBoluses).To(Equal("incompleteBoluses"))
+	})
+
+	It("MetadataKeyIncompleteBolusID is expected", func() {
+		Expect(dataRaw.MetadataKeyIncompleteBolusID).To(Equal("bolusId"))
+	})
+
+	DescribeTable("MetadataPathExpression matches a path of field names",
+		func(path string, expected bool) {
+			Expect(dataRaw.MetadataPathExpression.MatchString(path)).To(Equal(expected))
+		},
+		Entry("a field name", "bolusId", true),
+		Entry("a nested field name", "incompleteBoluses.bolusId", true),
+		Entry("empty", "", false),
+		Entry("an empty field name", "incompleteBoluses..bolusId", false),
+		Entry("a trailing period", "incompleteBoluses.", false),
+		Entry("an operator", "$where", false),
+		Entry("a nested operator", "incompleteBoluses.$elemMatch", false),
+	)
+
 	Context("ListOption", func() {
 		It("sorts by created time by default", func() {
 			Expect(dataRaw.ListOptions(nil).Sort()).To(Equal(dataRaw.SortCreatedTime))
@@ -111,7 +136,9 @@ var _ = Describe("Raw", func() {
 					datum.SequenceGroup = pointer.From(dataRawTest.RandomSequenceNumber())
 					datum.SequenceNumberAfter = pointer.From(dataRawTest.RandomSequenceNumber())
 					datum.SequenceNumberFrom = pointer.From(dataRawTest.RandomSequenceNumber())
+					datum.SequenceNumberBefore = pointer.From(dataRawTest.RandomSequenceNumber())
 					datum.ProcessedOrdinalFrom = pointer.From(dataRawTest.RandomSequenceNumber())
+					datum.Metadata = map[string]any{"incompleteBoluses.bolusId": test.RandomFloat64()}
 				},
 			),
 		)
@@ -141,6 +168,7 @@ var _ = Describe("Raw", func() {
 						object["sequenceGroup"] = ""
 						object["sequenceNumberAfter"] = ""
 						object["sequenceNumberFrom"] = ""
+						object["sequenceNumberBefore"] = ""
 						object["processedOrdinalFrom"] = ""
 						expectedDatum.CreatedDate = nil
 						expectedDatum.CreatedTimeStart = nil
@@ -152,6 +180,7 @@ var _ = Describe("Raw", func() {
 						expectedDatum.SequenceGroup = nil
 						expectedDatum.SequenceNumberAfter = nil
 						expectedDatum.SequenceNumberFrom = nil
+						expectedDatum.SequenceNumberBefore = nil
 						expectedDatum.ProcessedOrdinalFrom = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/createdDate"),
@@ -164,6 +193,7 @@ var _ = Describe("Raw", func() {
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(""), "/sequenceGroup"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(""), "/sequenceNumberAfter"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(""), "/sequenceNumberFrom"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(""), "/sequenceNumberBefore"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(""), "/processedOrdinalFrom"),
 				),
 			)
@@ -235,6 +265,7 @@ var _ = Describe("Raw", func() {
 						datum.SequenceGroup = nil
 						datum.SequenceNumberAfter = nil
 						datum.SequenceNumberFrom = nil
+						datum.SequenceNumberBefore = nil
 					},
 				),
 				Entry("sequenceGroup and sequenceNumberAfter zero",
@@ -309,6 +340,41 @@ var _ = Describe("Raw", func() {
 						datum.SequenceNumberFrom = pointer.From(dataRawTest.RandomSequenceNumber())
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/sequenceNumberFrom"),
+				),
+				Entry("sequenceNumberBefore zero, with sequenceNumberAfter",
+					func(datum *dataRaw.Filter) {
+						datum.SequenceGroup = pointer.From(dataRawTest.RandomSequenceNumber())
+						datum.SequenceNumberAfter = pointer.From(dataRawTest.RandomSequenceNumber())
+						datum.SequenceNumberFrom = nil
+						datum.SequenceNumberBefore = pointer.From(int64(0))
+					},
+				),
+				Entry("sequenceNumberBefore without sequenceGroup",
+					func(datum *dataRaw.Filter) {
+						datum.SequenceGroup = nil
+						datum.SequenceNumberAfter = nil
+						datum.SequenceNumberFrom = nil
+						datum.SequenceNumberBefore = pointer.From(dataRawTest.RandomSequenceNumber())
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/sequenceGroup"),
+				),
+				Entry("sequenceNumberBefore negative",
+					func(datum *dataRaw.Filter) {
+						datum.SequenceGroup = pointer.From(dataRawTest.RandomSequenceNumber())
+						datum.SequenceNumberBefore = pointer.From(int64(-1))
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(int64(-1), int64(0)), "/sequenceNumberBefore"),
+				),
+				Entry("metadata valid",
+					func(datum *dataRaw.Filter) {
+						datum.Metadata = map[string]any{"incompleteBoluses.bolusId": test.RandomInt(), "serialNumber": test.RandomString()}
+					},
+				),
+				Entry("metadata path invalid",
+					func(datum *dataRaw.Filter) {
+						datum.Metadata = map[string]any{"$where": test.RandomString()}
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotMatches("$where", dataRaw.MetadataPathExpression), "/metadata"),
 				),
 				Entry("multiple errors",
 					func(datum *dataRaw.Filter) {

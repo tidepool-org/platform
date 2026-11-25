@@ -117,6 +117,14 @@ var _ = Describe("Mongo", func() {
 								{Key: "metadata.processedOrdinal", Value: bson.D{{Key: "$exists", Value: true}}},
 							}),
 						}),
+						MatchFields(IgnoreExtras, Fields{
+							"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("userId", "dataSetId", "metadata.incompleteBoluses.bolusId", "metadata.minimumSequenceGroup", "metadata.minimumSequenceNumber")),
+							"Name": Equal("UserIdDataSetIdProcessedIncompleteBolusIdMinimumSequence"),
+							"PartialFilterExpression": Equal(bson.D{
+								{Key: "processedTime", Value: bson.D{{Key: "$exists", Value: true}}},
+								{Key: "metadata.incompleteBoluses.bolusId", Value: bson.D{{Key: "$exists", Value: true}}},
+							}),
+						}),
 					))
 				})
 			})
@@ -548,6 +556,133 @@ var _ = Describe("Mongo", func() {
 								plan, err := bson.MarshalExtJSON(explain["queryPlanner"], false, false)
 								Expect(err).ToNot(HaveOccurred())
 								Expect(string(plan)).To(ContainSubstring("UserIdDataSetIdProcessedOrdinal"))
+							})
+						})
+
+						It("returns only records whose minimum sequence is in the group and before the number", func() {
+							filter := &dataRaw.Filter{
+								DataSetID:            pointer.From(dataSetID),
+								SequenceGroup:        pointer.From(int64(0)),
+								SequenceNumberBefore: pointer.From(int64(100)),
+							}
+							Expect(listIDs(filter)).To(ConsistOf(documentID(from50)))
+						})
+
+						It("returns only records whose minimum sequence is in the group, after one number and before another", func() {
+							filter := &dataRaw.Filter{
+								DataSetID:            pointer.From(dataSetID),
+								SequenceGroup:        pointer.From(int64(0)),
+								SequenceNumberAfter:  pointer.From(int64(50)),
+								SequenceNumberBefore: pointer.From(int64(300)),
+							}
+							Expect(listIDs(filter)).To(ConsistOf(documentID(from100), documentID(unprocessed)))
+						})
+
+						It("sorts the records of the sequence group by sequence, descending", func() {
+							filter := &dataRaw.Filter{DataSetID: pointer.From(dataSetID), SequenceGroup: pointer.From(int64(0))}
+							Expect(listIDs(filter, dataRaw.WithSort(dataRaw.SortSequenceDescending))).To(Equal([]string{
+								documentID(unprocessed), documentID(from100), documentID(from50),
+							}))
+						})
+
+						It("lists the processed records back from a number, page by page by sequence", func() {
+							filter := &dataRaw.Filter{
+								DataSetID:            pointer.From(dataSetID),
+								Processed:            pointer.From(true),
+								SequenceGroup:        pointer.From(int64(0)),
+								SequenceNumberBefore: pointer.From(int64(300)),
+							}
+							pagination := &page.Pagination{Page: 0, Size: 1}
+							result, err := store.List(ctx, userID, filter, pagination, dataRaw.WithSort(dataRaw.SortSequenceDescending))
+							Expect(err).ToNot(HaveOccurred())
+							Expect(result).To(HaveLen(1))
+							Expect(result[0].ID).To(Equal(documentID(from100)))
+							filter.SequenceNumberBefore = pointer.From(int64(100))
+							result, err = store.List(ctx, userID, filter, pagination, dataRaw.WithSort(dataRaw.SortSequenceDescending))
+							Expect(err).ToNot(HaveOccurred())
+							Expect(result).To(HaveLen(1))
+							Expect(result[0].ID).To(Equal(documentID(from50)))
+						})
+
+						It("lists the processed records back from a number by the processed minimum sequence index, examining only those it returns", func() {
+							explain := bson.M{}
+							command := bson.D{
+								{Key: "explain", Value: bson.D{
+									{Key: "find", Value: mongoCollection.Name()},
+									{Key: "filter", Value: bson.M{
+										"userId":                         userID,
+										"dataSetId":                      dataSetID,
+										"processedTime":                  bson.M{"$exists": true},
+										"metadata.minimumSequenceGroup":  int64(0),
+										"metadata.minimumSequenceNumber": bson.M{"$lt": int64(300)},
+									}},
+									{Key: "sort", Value: bson.D{{Key: "metadata.minimumSequenceGroup", Value: -1}, {Key: "metadata.minimumSequenceNumber", Value: -1}}},
+									{Key: "limit", Value: 1},
+								}},
+								{Key: "verbosity", Value: "executionStats"},
+							}
+							Expect(mongoCollection.Database().RunCommand(ctx, command).Decode(&explain)).To(Succeed())
+							plan, err := bson.MarshalExtJSON(explain["queryPlanner"].(bson.M)["winningPlan"], false, false)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(string(plan)).To(ContainSubstring("UserIdDataSetIdProcessedMinimumSequence"))
+							Expect(string(plan)).To(ContainSubstring(`"direction":"backward"`))
+							Expect(string(plan)).ToNot(ContainSubstring(`"SORT"`))
+							Expect(explain["executionStats"]).To(HaveKeyWithValue("totalKeysExamined", BeNumerically("==", 1)))
+						})
+
+						Context("with incomplete boluses", func() {
+							BeforeEach(func() {
+								for document, bolusIDs := range map[*dataRawStoreStructuredMongo.Document][]float64{from100: {7, 8}, from50: {7}, unprocessed: {7}, spanningGroups: {9}} {
+									var incompleteBoluses bson.A
+									for _, bolusID := range bolusIDs {
+										incompleteBoluses = append(incompleteBoluses, bson.M{"bolusId": bolusID, "sequenceNumbers": bson.A{float64(1), float64(2)}, "started": true})
+									}
+									_, err := mongoCollection.UpdateOne(context.Background(), bson.M{"_id": document.ID}, bson.M{"$set": bson.M{"metadata.incompleteBoluses": incompleteBoluses}})
+									Expect(err).ToNot(HaveOccurred())
+								}
+							})
+
+							It("returns only records whose metadata has the value at the path, through an array", func() {
+								filter := &dataRaw.Filter{DataSetID: pointer.From(dataSetID), Metadata: map[string]any{"incompleteBoluses.bolusId": int64(7)}}
+								Expect(listIDs(filter)).To(ConsistOf(documentID(from100), documentID(from50), documentID(unprocessed)))
+							})
+
+							It("lists the processed records with an incomplete bolus before a number, latest first", func() {
+								filter := &dataRaw.Filter{
+									DataSetID:            pointer.From(dataSetID),
+									Processed:            pointer.From(true),
+									SequenceGroup:        pointer.From(int64(0)),
+									SequenceNumberBefore: pointer.From(int64(300)),
+									Metadata:             map[string]any{"incompleteBoluses.bolusId": int64(7)},
+								}
+								Expect(listIDs(filter, dataRaw.WithSort(dataRaw.SortSequenceDescending))).To(Equal([]string{documentID(from100), documentID(from50)}))
+							})
+
+							It("lists them by the incomplete bolus index, examining only those it returns", func() {
+								explain := bson.M{}
+								command := bson.D{
+									{Key: "explain", Value: bson.D{
+										{Key: "find", Value: mongoCollection.Name()},
+										{Key: "filter", Value: bson.M{
+											"userId":                             userID,
+											"dataSetId":                          dataSetID,
+											"processedTime":                      bson.M{"$exists": true},
+											"metadata.incompleteBoluses.bolusId": int64(7),
+											"metadata.minimumSequenceGroup":      int64(0),
+											"metadata.minimumSequenceNumber":     bson.M{"$lt": int64(300)},
+										}},
+										{Key: "sort", Value: bson.D{{Key: "metadata.minimumSequenceGroup", Value: -1}, {Key: "metadata.minimumSequenceNumber", Value: -1}}},
+										{Key: "limit", Value: 10},
+									}},
+									{Key: "verbosity", Value: "executionStats"},
+								}
+								Expect(mongoCollection.Database().RunCommand(ctx, command).Decode(&explain)).To(Succeed())
+								plan, err := bson.MarshalExtJSON(explain["queryPlanner"].(bson.M)["winningPlan"], false, false)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(string(plan)).To(ContainSubstring("UserIdDataSetIdProcessedIncompleteBolusIdMinimumSequence"))
+								Expect(string(plan)).ToNot(ContainSubstring(`"SORT"`))
+								Expect(explain["executionStats"]).To(HaveKeyWithValue("nReturned", BeNumerically("==", 2)))
+								Expect(explain["executionStats"]).To(HaveKeyWithValue("totalKeysExamined", BeNumerically("==", 2)))
 							})
 						})
 

@@ -47,6 +47,7 @@ func RandomFilter(options ...test.Option) *dataRaw.Filter {
 		if filter.SequenceNumberAfter == nil {
 			filter.SequenceNumberFrom = test.RandomOptional(RandomSequenceNumber, options...)
 		}
+		filter.SequenceNumberBefore = test.RandomOptional(RandomSequenceNumber, options...)
 	}
 	filter.ProcessedOrdinalFrom = test.RandomOptional(RandomSequenceNumber, options...)
 	return filter
@@ -67,7 +68,9 @@ func CloneFilter(datum *dataRaw.Filter) *dataRaw.Filter {
 		SequenceGroup:        pointer.Clone(datum.SequenceGroup),
 		SequenceNumberAfter:  pointer.Clone(datum.SequenceNumberAfter),
 		SequenceNumberFrom:   pointer.Clone(datum.SequenceNumberFrom),
+		SequenceNumberBefore: pointer.Clone(datum.SequenceNumberBefore),
 		ProcessedOrdinalFrom: pointer.Clone(datum.ProcessedOrdinalFrom),
+		Metadata:             metadataTest.CloneMetadataMap(datum.Metadata),
 	}
 }
 
@@ -106,8 +109,14 @@ func NewObjectFromFilter(datum *dataRaw.Filter, objectFormat test.ObjectFormat) 
 	if datum.SequenceNumberFrom != nil {
 		object["sequenceNumberFrom"] = test.NewObjectFromInt64(*datum.SequenceNumberFrom, objectFormat)
 	}
+	if datum.SequenceNumberBefore != nil {
+		object["sequenceNumberBefore"] = test.NewObjectFromInt64(*datum.SequenceNumberBefore, objectFormat)
+	}
 	if datum.ProcessedOrdinalFrom != nil {
 		object["processedOrdinalFrom"] = test.NewObjectFromInt64(*datum.ProcessedOrdinalFrom, objectFormat)
+	}
+	if datum.Metadata != nil {
+		object["metadata"] = metadataTest.NewObjectFromMetadataMap(datum.Metadata, objectFormat)
 	}
 	return object
 }
