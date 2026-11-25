@@ -38,12 +38,15 @@ const (
 	metadataKeyMinimumSequenceNumber = "metadata." + dataRaw.MetadataKeyMinimumSequenceNumber
 	metadataKeyProcessedOrdinal      = "metadata." + dataRaw.MetadataKeyProcessedOrdinal
 	metadataKeyMaximumSequenceGroup  = "metadata." + dataRaw.MetadataKeyMaximumSequenceGroup
+	metadataKeyIncompleteBolusID     = "metadata." + dataRaw.MetadataKeyIncompleteBoluses + "." + dataRaw.MetadataKeyIncompleteBolusID
 )
 
 var sorts = map[string]bson.D{
 	dataRaw.SortCreatedTime: {{Key: "createdTime", Value: 1}},
 	// Raw data without a sequence sorts first, as missing fields sort before numbers
 	dataRaw.SortSequence: {{Key: metadataKeyMinimumSequenceGroup, Value: 1}, {Key: metadataKeyMinimumSequenceNumber, Value: 1}, {Key: "createdTime", Value: 1}},
+	// No created time, so an index on the minimum sequence serves it
+	dataRaw.SortSequenceDescending: {{Key: metadataKeyMinimumSequenceGroup, Value: -1}, {Key: metadataKeyMinimumSequenceNumber, Value: -1}},
 }
 
 type Store struct {
@@ -111,6 +114,21 @@ func (s *Store) EnsureIndexes() error {
 					{Key: metadataKeyProcessedOrdinal, Value: bson.M{"$exists": true}},
 				}).
 				SetName("UserIdDataSetIdProcessedOrdinal"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "userId", Value: 1},
+				{Key: "dataSetId", Value: 1},
+				{Key: metadataKeyIncompleteBolusID, Value: 1},
+				{Key: metadataKeyMinimumSequenceGroup, Value: 1},
+				{Key: metadataKeyMinimumSequenceNumber, Value: 1},
+			},
+			Options: mongoOptions.Index().
+				SetPartialFilterExpression(bson.D{
+					{Key: "processedTime", Value: bson.M{"$exists": true}},
+					{Key: metadataKeyIncompleteBolusID, Value: bson.M{"$exists": true}},
+				}).
+				SetName("UserIdDataSetIdProcessedIncompleteBolusIdMinimumSequence"),
 		},
 	})
 }
@@ -182,12 +200,22 @@ func (s *Store) List(ctx context.Context, userID string, filter *dataRaw.Filter,
 	if filter.MediaTypes != nil {
 		query["mediaType"] = bson.M{"$in": *filter.MediaTypes}
 	}
+	for path, value := range filter.Metadata {
+		query["metadata."+path] = value
+	}
 	if filter.SequenceGroup != nil {
 		query[metadataKeyMinimumSequenceGroup] = *filter.SequenceGroup
+		sequenceNumberQuery := bson.M{}
 		if filter.SequenceNumberAfter != nil {
-			query[metadataKeyMinimumSequenceNumber] = bson.M{"$gt": *filter.SequenceNumberAfter}
+			sequenceNumberQuery["$gt"] = *filter.SequenceNumberAfter
 		} else if filter.SequenceNumberFrom != nil {
-			query[metadataKeyMinimumSequenceNumber] = bson.M{"$gte": *filter.SequenceNumberFrom}
+			sequenceNumberQuery["$gte"] = *filter.SequenceNumberFrom
+		}
+		if filter.SequenceNumberBefore != nil {
+			sequenceNumberQuery["$lt"] = *filter.SequenceNumberBefore
+		}
+		if len(sequenceNumberQuery) > 0 {
+			query[metadataKeyMinimumSequenceNumber] = sequenceNumberQuery
 		} else {
 			query[metadataKeyMaximumSequenceGroup] = *filter.SequenceGroup
 		}
